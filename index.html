@@ -155,6 +155,42 @@ tr:hover td{background:#f8fafc}
   .kpi-grid{grid-template-columns:1fr}
   .form-grid,.form-grid.cols3{grid-template-columns:1fr}
 }
+
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ══ LOGIN ══ */
+#login-screen{display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:radial-gradient(circle at 18% 12%,rgba(79,70,229,.38),transparent 45%),linear-gradient(135deg,var(--dark),var(--primary) 60%,var(--primary-lt))}
+.lg-card{background:rgba(255,255,255,.98);border-radius:18px;padding:40px 42px;width:min(420px,92vw);box-shadow:0 24px 64px rgba(0,0,0,.45)}
+.lg-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px}
+.lg-logo img{height:64px;max-width:100%;object-fit:contain;border-radius:8px}
+.lg-title{font-family:'Rajdhani',sans-serif;font-size:1.35rem;font-weight:700;color:var(--primary);letter-spacing:2px;text-transform:uppercase}
+.lg-title span{color:var(--accent)}
+.lg-sub{font-size:.72rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:-4px}
+.lg-div{height:1px;background:var(--border);margin:0 0 22px}
+.lg-lbl{display:block;font-family:'Rajdhani',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary);margin-bottom:5px}
+.lg-wrap{position:relative;margin-bottom:18px}
+.lg-inp{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'Exo 2',sans-serif;font-size:.9rem;color:var(--text);background:#fff;outline:none;transition:border .18s,box-shadow .18s}
+.lg-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.lg-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex;align-items:center}
+.lg-eye:hover{color:var(--accent)}
+.lg-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#6366f1);color:#fff;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:6px;box-shadow:0 4px 14px rgba(79,70,229,.35);transition:filter .2s}
+.lg-btn:hover{filter:brightness(1.1)}
+.lg-btn:disabled{opacity:.55;cursor:not-allowed}
+.lg-btn-inner{display:flex;align-items:center;justify-content:center;gap:8px}
+.lg-msg{margin-top:14px;padding:10px 14px;border-radius:7px;font-size:.82rem;text-align:center;display:none}
+.lg-msg.error{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;display:block}
+.lg-foot{margin-top:22px;text-align:center;font-size:.70rem;color:var(--muted);border-top:1px solid var(--border);padding-top:14px}
+.lg-spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite}
+/* ══ AGRUPAR CÓDIGOS ══ */
+.agr-bar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+.agr-bar label,.agr-footer label{display:block;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.agr-bar select{min-width:460px;max-width:100%}
+.agr-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.agr-count{font-size:.78rem;color:var(--muted);font-weight:600;margin-left:auto}
+.agr-footer{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:16px}
+.agr-footer input{min-width:340px}
+tr.agr-sel td{background:#eef2ff}
+input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.agr-hint{font-size:.74rem;color:var(--muted);margin-top:10px}
 </style>
 </head>
 <body>
@@ -163,8 +199,37 @@ tr:hover td{background:#f8fafc}
   <div class="spinner"></div>
   <p style="margin-top:12px;font-weight:600;font-size:.88rem" id="loader-txt">Cargando...</p>
 </div>
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="lg-card">
+    <div class="lg-logo">
+      <img src="https://i.postimg.cc/6qX8R20H/MEDICAL-CAREMED.png" alt="Medical Caremed" onerror="this.style.display='none'">
+      <div class="lg-title">Medical <span>Caremed</span></div>
+      <div class="lg-sub">Sistema de Cotizaciones</div>
+    </div>
+    <div class="lg-div"></div>
+    <label class="lg-lbl" for="lg-correo">Correo</label>
+    <div class="lg-wrap">
+      <input class="lg-inp" type="email" id="lg-correo" placeholder="correo@empresa.com" autocomplete="username" autocapitalize="none">
+    </div>
+    <label class="lg-lbl" for="lg-pass">Contraseña</label>
+    <div class="lg-wrap">
+      <input class="lg-inp" type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password" style="padding-right:40px">
+      <button class="lg-eye" onclick="togglePass()" type="button" aria-label="Mostrar u ocultar contraseña">
+        <svg id="lg-eye-ico" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <button class="lg-btn" id="lg-btn" onclick="doLogin()">
+      <span class="lg-btn-inner" id="lg-btn-inner">INICIAR SESIÓN</span>
+    </button>
+    <div id="lg-msg" class="lg-msg"></div>
+    <div class="lg-foot">© 2026 Medical Caremed<br>Acceso exclusivo para personal autorizado</div>
+  </div>
+</div>
 <!-- ══════════════════════ APP ══════════════════════ -->
-<div id="app-screen" style="display:flex;flex-direction:column;min-height:100vh">
+<div id="app-screen" style="display:none;flex-direction:column;min-height:100vh">
   <!-- TOPBAR -->
   <header class="topbar">
     <img class="topbar-logo" src="https://i.postimg.cc/6qX8R20H/MEDICAL-CAREMED.png" alt="Medical Caremed" onerror="this.style.display='none'">
@@ -202,6 +267,9 @@ tr:hover td{background:#f8fafc}
         </li>
         <li class="nav-item" id="nav-buscar" onclick="navigate('buscar',this)">
           <span class="nav-ico material-icons" style="font-size:18px">manage_search</span> Buscar por Clave
+        </li>
+        <li class="nav-item" id="nav-agrupar" onclick="navigate('agrupar',this)">
+          <span class="nav-ico material-icons" style="font-size:18px">playlist_add_check</span> Agrupar Códigos
         </li>
       </ul>
       <div class="sidebar-footer">© 2026 Medical Caremed<br><strong>COTIZACIONES v3.0</strong></div>
@@ -334,7 +402,7 @@ tr:hover td{background:#f8fafc}
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbx7WrE201IAMu4-Pby3nTiHW6sybUVkJlVj8RBeD8m-HEcah4Xb9ZXOL45VxENBfml4xA/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbxPMCOtuietTukEjjhRvQCAkHYnyNeOiv4o1vJuf8JjVA8Emvl0fxirFT1GDNA11whLzg/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -350,7 +418,7 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbx7WrE201IAMu4-Pby3nTiHW6
    - Publicar como: Ejecutar como YO, Acceso CUALQUIER PERSONA
    - ContentService.MimeType.JSON en doGet (ya configurado)
    ══════════════════════════════════════════════════════════════ */
-function gasGet(action, extraParams) {
+function _gasGetRaw(action, extraParams) {
   var url = GAS_URL + '?action=' + encodeURIComponent(action);
   if (extraParams && Object.keys(extraParams).length > 0) {
     url += '&data=' + encodeURIComponent(JSON.stringify(extraParams));
@@ -392,6 +460,16 @@ function gasGetJSONP(action, extraParams) {
     script.src = url;
   });
 }
+/* gasGet — agrega el token de sesión a cada llamada y, si el servidor responde
+   que la sesión expiró, regresa a la pantalla de inicio de sesión. */
+function gasGet(action, extraParams) {
+  var ep = Object.assign({}, extraParams || {});
+  if (SESSION && SESSION.token) ep.token = SESSION.token;
+  return _gasGetRaw(action, ep).then(function(res) {
+    if (res && res.noAuth) { sesionExpirada(); return new Promise(function(){}); }
+    return res;
+  });
+}
 // POST para mutaciones (guardar, actualizar, eliminar)
 /* gasPost — todas las mutaciones van por JSONP GET.
    - Payloads pequeños: gasGet directo.
@@ -423,7 +501,8 @@ function gasPost(payload) {
 // ══════════════════════════════════════════════════════════════
 //  ESTADO GLOBAL
 // ══════════════════════════════════════════════════════════════
-var SESSION = { nombre: 'Usuario', rol: 'USUARIO', cuenta: '' };
+var SESSION = null;
+try { var _sRaw = sessionStorage.getItem('mc_cot_sesion'); if (_sRaw) SESSION = JSON.parse(_sRaw); } catch(e) {}
 var db          = { usuarios:[], empresas:[], claves:[], hospitales:[] };
 var cotizaciones= [];
 var seccion     = 'cotizaciones';
@@ -434,6 +513,72 @@ var ROWS_PER_PAGE=10;
 var currentIdControl = '';
 var currentCotRow    = null;
 var filasClave       = [];
+// ══════════════════════════════════════════════════════════════
+//  INICIO DE SESIÓN  (correo + contraseña · hoja 1 USUARIOS)
+// ══════════════════════════════════════════════════════════════
+var _sesionAvisada = false;
+function mostrarLogin() {
+  document.getElementById('app-screen').style.display   = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  var c = document.getElementById('lg-correo'); if (c) c.focus();
+}
+function mostrarApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display   = 'flex';
+  initApp();
+}
+function togglePass() {
+  var inp = document.getElementById('lg-pass');
+  var ico = document.getElementById('lg-eye-ico');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  ico.innerHTML = inp.type === 'text'
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+function doLogin() {
+  var correo = document.getElementById('lg-correo').value.trim();
+  var pass   = document.getElementById('lg-pass').value;
+  var msgEl  = document.getElementById('lg-msg');
+  var btnEl  = document.getElementById('lg-btn');
+  var inner  = document.getElementById('lg-btn-inner');
+  msgEl.className = 'lg-msg'; msgEl.textContent = '';
+  if (!correo || !pass) { msgEl.className = 'lg-msg error'; msgEl.textContent = 'Ingresa correo y contraseña.'; return; }
+  btnEl.disabled = true;
+  inner.innerHTML = '<div class="lg-spin"></div> Verificando…';
+  gasGet('login', { correo: correo, password: pass })
+    .then(function(res) {
+      btnEl.disabled = false; inner.textContent = 'INICIAR SESIÓN';
+      if (res && res.ok) {
+        SESSION = { token:res.token, nombre:res.nombre, cuenta:res.correo, iniciales:res.iniciales,
+                    tipoVista:res.tipoVista, rol:res.tipoVista };
+        try { sessionStorage.setItem('mc_cot_sesion', JSON.stringify(SESSION)); } catch(e) {}
+        document.getElementById('lg-pass').value = '';
+        _sesionAvisada = false;
+        mostrarApp();
+      } else {
+        msgEl.className = 'lg-msg error';
+        msgEl.textContent = (res && (res.msg || res.error)) || 'Correo o contraseña incorrectos.';
+      }
+    })
+    .catch(function(err) {
+      btnEl.disabled = false; inner.textContent = 'INICIAR SESIÓN';
+      msgEl.className = 'lg-msg error'; msgEl.textContent = err.message;
+    });
+}
+document.addEventListener('keydown', function(e) {
+  var ls = document.getElementById('login-screen');
+  if (e.key === 'Enter' && ls && ls.style.display === 'flex') doLogin();
+});
+function sesionExpirada() {
+  if (_sesionAvisada) return;
+  _sesionAvisada = true;
+  SESSION = null;
+  try { sessionStorage.removeItem('mc_cot_sesion'); } catch(e) {}
+  loader(false);
+  Swal.fire({ icon:'info', title:'Sesión expirada', text:'Inicia sesión de nuevo para continuar.',
+              confirmButtonColor:var_accent(), allowOutsideClick:false })
+    .then(function(){ location.reload(); });
+}
 // ══════════════════════════════════════════════════════════════
 //  INICIAR APP
 // ══════════════════════════════════════════════════════════════
@@ -472,6 +617,7 @@ function doLogout() {
     .then(function(r) {
       if (!r.isConfirmed) return;
       SESSION = null;
+      try { sessionStorage.removeItem('mc_cot_sesion'); } catch(e) {}
       location.reload();
     });
 }
@@ -504,6 +650,7 @@ function navigate(sec, el) {
 function render() {
   if (seccion==='cotizaciones') renderCotizaciones();
   else if (seccion==='buscar') renderBuscar();
+  else if (seccion==='agrupar') renderAgrupar();
 }
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO COTIZACIONES
@@ -1048,45 +1195,186 @@ function exportarTabla() {
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO BUSCAR POR CLAVE
 // ══════════════════════════════════════════════════════════════
-var buscarResultados=[]; var buscarPage=1; var BUSCAR_ROWS=20;
+var buscarResultados=[]; var buscarCache={q:'',rows:[],truncated:true}; var buscarSeq=0; var buscarTimer=null;
 function renderBuscar() {
   document.getElementById('main-ws').innerHTML=
     '<div class="page-header"><div><h1>Buscar por Clave</h1><p>Catálogo · Hoja 7 CATALOGO</p></div></div>'+
     '<div class="card">'+
       '<div class="search-bar-big">'+
-        '<input type="text" id="buscar-input" placeholder="Escribe una clave o descripción..." onkeydown="if(event.key===\'Enter\')ejecutarBusqueda()">'+
-        '<button class="btn btn-primary" onclick="ejecutarBusqueda()"><span class="material-icons" style="font-size:17px">search</span> Buscar</button>'+
+        '<input type="text" id="buscar-input" autocomplete="off" placeholder="Escribe una clave o descripción..." oninput="onBuscarInput()" onkeydown="if(event.key===\'Enter\'){clearTimeout(buscarTimer);ejecutarBusqueda();}">'+
+        '<button class="btn btn-primary" onclick="clearTimeout(buscarTimer);ejecutarBusqueda()"><span class="material-icons" style="font-size:17px">search</span> Buscar</button>'+
       '</div>'+
       '<div id="buscar-result-area"><div class="no-data"><span class="material-icons">search</span>Escribe para buscar.</div></div>'+
     '</div>';
+  var inp=document.getElementById('buscar-input'); if(inp) inp.focus();
+}
+/* Búsqueda automática: espera 300 ms tras la última tecla. Si la búsqueda nueva contiene a la anterior
+   y esta no fue truncada, se filtra en el navegador (instantáneo) sin volver a consultar el servidor. */
+function onBuscarInput(){ clearTimeout(buscarTimer); buscarTimer=setTimeout(ejecutarBusqueda,300); }
+function _matchBuscar(p,qu){
+  return String(p.clave10||'').toUpperCase().indexOf(qu)>=0 ||
+         String(p.descripcion||'').toUpperCase().indexOf(qu)>=0 ||
+         String(p.difVariante||'').toUpperCase().indexOf(qu)>=0;
 }
 function ejecutarBusqueda() {
-  var q=document.getElementById('buscar-input')?document.getElementById('buscar-input').value.trim():'';
-  if(!q){alertWarn('Escribe algo para buscar.');return;}
-  loader(true,'Buscando...');
+  var inp=document.getElementById('buscar-input'); if(!inp) return;
+  var area=document.getElementById('buscar-result-area'); if(!area) return;
+  var q=inp.value.trim(), qu=q.toUpperCase();
+  if(q.length<2){
+    buscarSeq++; buscarResultados=[];
+    area.innerHTML='<div class="no-data"><span class="material-icons">search</span>Escribe al menos 2 caracteres para buscar.</div>';
+    return;
+  }
+  if(buscarCache.q && !buscarCache.truncated && qu.indexOf(buscarCache.q)>=0){
+    buscarSeq++;
+    buscarResultados=buscarCache.rows.filter(function(p){ return _matchBuscar(p,qu); });
+    buscarCache={q:qu,rows:buscarResultados,truncated:false};
+    renderBuscarResultados(); return;
+  }
+  var seq=++buscarSeq;
+  if(!buscarResultados.length) area.innerHTML='<div class="no-data"><span class="material-icons">hourglass_top</span>Buscando...</div>';
+  else { var est=document.getElementById('buscar-estado'); if(est) est.textContent='Buscando...'; }
   gasGet('buscarproductos', {query:q })
     .then(function(res) {
-      loader(false);
-      if(!res.ok){alertErr(res.error);return;}
-      buscarResultados=res.resultados; buscarPage=1; renderBuscarResultados();
+      if(seq!==buscarSeq) return;
+      if(!res.ok){ area.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error al buscar')+'</div>'; return; }
+      buscarResultados=res.resultados;
+      buscarCache={q:qu,rows:res.resultados,truncated:res.resultados.length>=200};
+      renderBuscarResultados();
     })
-    .catch(function(err){ loader(false); alertErr(err.message); });
+    .catch(function(err){
+      if(seq!==buscarSeq) return;
+      area.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>';
+    });
 }
 function renderBuscarResultados() {
   var area=document.getElementById('buscar-result-area');
   if(!area)return;
   var total=buscarResultados.length;
   if(total===0){area.innerHTML='<div class="no-data"><span class="material-icons">search_off</span>Sin resultados.</div>';return;}
-  var totalPag=Math.max(1,Math.ceil(total/BUSCAR_ROWS));
-  if(buscarPage>totalPag)buscarPage=totalPag;
-  var paged=buscarResultados.slice((buscarPage-1)*BUSCAR_ROWS,buscarPage*BUSCAR_ROWS);
   var rows='';
-  paged.forEach(function(p){ rows+='<tr><td style="font-weight:700;color:var(--accent)">'+esc(p.clave10)+'</td><td>'+esc(p.difVariante)+'</td><td style="max-width:300px;white-space:normal">'+esc(p.descripcion)+'</td><td>'+esc(p.um)+'</td><td style="max-width:200px;white-space:normal"><div class="pills">'+pillsHtml(p.histMarcas)+'</div></td></tr>'; });
-  var pag=totalPag>1?'<div class="pag"><button class="pag-btn" onclick="changeBuscarPage(-1)" '+(buscarPage<=1?'disabled':'')+'>&lt;</button><span class="pag-info">'+buscarPage+' / '+totalPag+'</span><button class="pag-btn" onclick="changeBuscarPage(1)" '+(buscarPage>=totalPag?'disabled':'')+'>&gt;</button></div>':'';
-  area.innerHTML='<p style="font-size:.78rem;color:var(--muted);margin-bottom:8px">'+total+' resultado(s):</p>'+
-    '<div style="overflow-x:auto"><table><thead><tr><th>CLAVE 10 DIG.</th><th>DIF. VARIANTE</th><th>DESCRIPCIÓN</th><th>UM</th><th>HIST. MARCAS</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+pag;
+  buscarResultados.forEach(function(p){ rows+='<tr><td style="font-weight:700;color:var(--accent)">'+esc(p.clave10)+'</td><td>'+esc(p.difVariante)+'</td><td style="max-width:300px;white-space:normal">'+esc(p.descripcion)+'</td><td>'+esc(p.um)+'</td><td style="max-width:200px;white-space:normal"><div class="pills">'+pillsHtml(p.histMarcas)+'</div></td></tr>'; });
+  area.innerHTML='<p style="font-size:.78rem;color:var(--muted);margin-bottom:8px"><span>'+total+' resultado(s)'+(total>=200?' (se muestran los primeros 200, afina tu búsqueda)':'')+'</span> <span id="buscar-estado"></span></p>'+
+    '<div class="table-scroll-wrap" style="max-height:calc(100vh - 330px);min-height:240px"><table><thead><tr><th>CLAVE 10 DIG.</th><th>DIF. VARIANTE</th><th>DESCRIPCIÓN</th><th>UM</th><th>HIST. MARCAS</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
-function changeBuscarPage(d){ buscarPage+=d; renderBuscarResultados(); }
+// ══════════════════════════════════════════════════════════════
+//  MÓDULO AGRUPAR CÓDIGOS  (solicitud de cotización a proveedor)
+// ══════════════════════════════════════════════════════════════
+var agr={ idControl:'', partidas:[], sel:{}, filtro:'', proveedores:null, provError:'' };
+function renderAgrupar() {
+  var opts='<option value="">-- Selecciona una cotización --</option>';
+  cotizaciones.forEach(function(c){
+    opts+='<option value="'+esc(c.idControl)+'"'+(c.idControl===agr.idControl?' selected':'')+'>'+
+      esc(c.idControl)+' · '+esc(c.cliente)+' · '+esc(c.fecha)+' ('+(c.totalPartidas||0)+' partidas)</option>';
+  });
+  document.getElementById('main-ws').innerHTML=
+    '<div class="page-header"><div><h1>Agrupar Códigos</h1><p>Elige una cotización, marca las claves y genera el Excel para solicitar cotización a un proveedor</p></div></div>'+
+    '<div class="card">'+
+      '<div class="agr-bar"><div><label for="agr-cot">Cotización</label>'+
+        '<select class="form-control" id="agr-cot" onchange="cargarAgrupar(this.value)">'+opts+'</select></div></div>'+
+      '<div id="agr-panel"></div>'+
+    '</div>';
+  if(agr.idControl && agr.partidas.length) renderAgrPanel();
+}
+function cargarAgrupar(id) {
+  agr.idControl=id; agr.partidas=[]; agr.sel={}; agr.filtro='';
+  var panel=document.getElementById('agr-panel');
+  if(!id){ panel.innerHTML=''; return; }
+  panel.innerHTML='<div class="no-data"><span class="material-icons">hourglass_top</span>Cargando claves...</div>';
+  var provP = agr.proveedores ? Promise.resolve() :
+    gasGet('proveedores').then(function(r){
+      if(r.ok){ agr.proveedores=r.proveedores; agr.provError=''; }
+      else { agr.provError=r.error||'No se pudo leer 2 PROVEEDORES'; }
+    }).catch(function(e){ agr.provError=e.message; });
+  Promise.all([ gasGet('partidas',{idControl:id}), provP ])
+    .then(function(r){
+      if(agr.idControl!==id) return;
+      var res=r[0];
+      if(!res.ok){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; return; }
+      agr.partidas=res.partidas;
+      renderAgrPanel();
+    })
+    .catch(function(err){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
+}
+function renderAgrPanel() {
+  var panel=document.getElementById('agr-panel'); if(!panel) return;
+  if(!agr.partidas.length){ panel.innerHTML='<div class="no-data"><span class="material-icons">inbox</span>Esta cotización no tiene claves.</div>'; return; }
+  var dl=''; (agr.proveedores||[]).forEach(function(n){ dl+='<option value="'+esc(n)+'">'; });
+  panel.innerHTML=
+    '<div class="agr-toolbar">'+
+      '<div class="search-wrap"><span class="material-icons">search</span><input class="search-input" id="agr-filtro" placeholder="Filtrar por clave, descripción o marca..." value="'+esc(agr.filtro)+'" oninput="agrFiltrar(this.value)"></div>'+
+      '<button class="btn btn-outline btn-sm" onclick="agrSelTodas(true)">Seleccionar visibles</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="agrSelTodas(false)">Limpiar selección</button>'+
+      '<span class="agr-count" id="agr-contador"></span>'+
+    '</div>'+
+    '<div class="table-scroll-wrap" style="max-height:calc(100vh - 470px);min-height:220px"><table><thead><tr>'+
+      '<th style="width:36px"><input type="checkbox" class="agr-chk" id="agr-chk-all" onchange="agrSelTodas(this.checked)"></th>'+
+      '<th>#</th><th>CÓDIGO</th><th>DIF Y VAR</th><th>DESCRIPCIÓN</th><th>UM</th><th>UNIDADES</th><th>MARCA</th>'+
+    '</tr></thead><tbody id="agr-body"></tbody></table></div>'+
+    '<div class="agr-footer">'+
+      '<div><label for="agr-prov">Proveedor</label>'+
+        '<input class="form-control" id="agr-prov" list="agr-prov-list" placeholder="Elige o escribe un proveedor" autocomplete="off">'+
+        '<datalist id="agr-prov-list">'+dl+'</datalist></div>'+
+      '<button class="btn btn-primary" onclick="generarSolicitud()"><span class="material-icons" style="font-size:17px">table_view</span> Generar Excel para proveedor</button>'+
+    '</div>'+
+    (agr.provError?'<div class="agr-hint" style="color:#b45309">No se pudo leer la hoja 2 PROVEEDORES ('+esc(agr.provError)+'). Puedes escribir el proveedor manualmente.</div>':'')+
+    '<div class="agr-hint">El Excel se guarda en la carpeta de Drive y no incluye cliente ni precios objetivo.</div>';
+  renderAgrBody();
+}
+function agrVisibles() {
+  var f=agr.filtro.trim().toUpperCase();
+  return agr.partidas.filter(function(p){
+    if(!f) return true;
+    return (String(p.clave10)+' '+String(p.difVariante)+' '+String(p.clave14)+' '+String(p.descripcion)+' '+String(p.marca)).toUpperCase().indexOf(f)>=0;
+  });
+}
+function renderAgrBody() {
+  var body=document.getElementById('agr-body'); if(!body) return;
+  var vis=agrVisibles(), html='';
+  vis.forEach(function(p,i){
+    var on=!!agr.sel[p.idFormato];
+    html+='<tr class="'+(on?'agr-sel':'')+'"><td><input type="checkbox" class="agr-chk" '+(on?'checked ':'')+'onchange="agrToggle(\''+esc(p.idFormato)+'\',this.checked)"></td>'+
+      '<td>'+(i+1)+'</td><td style="font-weight:700;color:var(--accent)">'+esc(String(p.clave10).replace(/^\'/,''))+'</td>'+
+      '<td>'+esc(String(p.difVariante).replace(/^\'/,''))+'</td>'+
+      '<td style="max-width:420px;white-space:normal">'+esc(p.descripcion)+'</td><td>'+esc(p.um)+'</td><td>'+esc(p.unidades)+'</td><td>'+esc(p.marca)+'</td></tr>';
+  });
+  body.innerHTML=html||'<tr><td colspan="8"><div class="no-data" style="padding:24px"><span class="material-icons">search_off</span>Sin coincidencias.</div></td></tr>';
+  agrActualizar();
+}
+function agrActualizar() {
+  var n=Object.keys(agr.sel).filter(function(k){ return agr.sel[k]; }).length;
+  var c=document.getElementById('agr-contador'); if(c) c.textContent=n+' seleccionada(s) de '+agr.partidas.length;
+  var vis=agrVisibles();
+  var all=document.getElementById('agr-chk-all');
+  if(all) all.checked = vis.length>0 && vis.every(function(p){ return agr.sel[p.idFormato]; });
+}
+function agrFiltrar(v){ agr.filtro=v; renderAgrBody(); }
+function agrToggle(id,on){ if(on) agr.sel[id]=true; else delete agr.sel[id]; renderAgrBody(); }
+function agrSelTodas(on){
+  agrVisibles().forEach(function(p){ if(on) agr.sel[p.idFormato]=true; else delete agr.sel[p.idFormato]; });
+  renderAgrBody();
+}
+function generarSolicitud() {
+  var ids=Object.keys(agr.sel).filter(function(k){ return agr.sel[k]; });
+  var prov=(document.getElementById('agr-prov').value||'').trim();
+  if(!ids.length){ alertWarn('Selecciona al menos una clave.'); return; }
+  if(!prov){ alertWarn('Elige o escribe el proveedor.'); return; }
+  Swal.fire({ title:'Generar solicitud', html:ids.length+' clave(s) para <b>'+esc(prov)+'</b>', icon:'question', showCancelButton:true,
+              confirmButtonColor:var_accent(), cancelButtonText:'Cancelar', confirmButtonText:'Generar Excel' })
+    .then(function(r){
+      if(!r.isConfirmed) return;
+      loader(true,'Generando Excel...');
+      gasGet('generarsolicitud', { idControl:agr.idControl, proveedor:prov, ids:ids.join(',') })
+        .then(function(res){
+          loader(false);
+          if(!res.ok){ alertErr(res.error); return; }
+          Swal.fire({ icon:'success', title:'Excel generado',
+            html:'<a href="'+res.link+'" target="_blank" style="color:var(--accent);font-weight:700">'+esc(res.nombre)+'</a><br><span style="font-size:.8rem;color:#64748b">'+res.total+' clave(s) · guardado en la carpeta de Drive</span>',
+            confirmButtonColor:var_accent() });
+        })
+        .catch(function(err){ loader(false); alertErr(err.message); });
+    });
+}
 // ══════════════════════════════════════════════════════════════
 //  HELPERS
 // ══════════════════════════════════════════════════════════════
@@ -1107,8 +1395,10 @@ function toInputDate(d){
 document.querySelectorAll('.overlay').forEach(function(ov){
   ov.addEventListener('click',function(e){ if(e.target===ov)ov.classList.remove('open'); });
 });
-// Iniciar app automáticamente al cargar la página
-document.addEventListener('DOMContentLoaded', initApp);
+// Al cargar: con sesión vigente entra directo; si no, pide correo y contraseña
+document.addEventListener('DOMContentLoaded', function() {
+  if (SESSION && SESSION.token) mostrarApp(); else mostrarLogin();
+});
 </script>
 </body>
 </html>
