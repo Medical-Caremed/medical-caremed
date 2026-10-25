@@ -402,7 +402,7 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbwlb4v6VWu6DM3t9WGSsEjFxAzUcFP-BHQ5dfHKHoqOUl8rbXFdxxGNuwFFkAsRIcLMGw/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwrVytrZ3GfT1ltMWavbcejIuCDs72NiA4roLsUwUJ-XSa7Exg1N6STvxI8IkbcRmK5mQ/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -1151,7 +1151,7 @@ function enviarCotizacion(idControl) {
       if(!r.isConfirmed)return;
       loader(true,'Enviando cotización...');
       gasPost({ accion:'enviarcotizacion', idControl:idControl })
-        .then(function(res){ loader(false); if(!res.ok){alertErr(res.error);return;} Swal.fire({icon:'success',title:'Cotización enviada',text:'Notificación WhatsApp enviada.',confirmButtonColor:var_accent()}); cargarCotizaciones(); })
+        .then(function(res){ loader(false); if(!res.ok){alertErr(res.error);return;} var wa=res.whatsapp||{}; if(wa.enviado){ Swal.fire({icon:'success',title:'Cotización enviada',text:'Notificación WhatsApp enviada.',confirmButtonColor:var_accent()}); } else { Swal.fire({icon:'warning',title:'Cotización marcada, pero WhatsApp NO se envió',html:'Motivo: <b>'+esc(wa.codigo?('HTTP '+wa.codigo):'sin conexión')+'</b><br><span style="font-size:.8rem;color:#64748b">'+esc(wa.detalle||'Sin detalle')+'</span>',confirmButtonColor:'#f59e0b'}); } cargarCotizaciones(); })
         .catch(function(err){ loader(false); alertErr(err.message); });
     });
 }
@@ -1260,22 +1260,70 @@ function renderBuscarResultados() {
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO AGRUPAR CÓDIGOS  (solicitud de cotización a proveedor)
 // ══════════════════════════════════════════════════════════════
-var agr={ idControl:'', partidas:[], sel:{}, filtro:'', proveedores:null, provError:'' };
-function renderAgrupar() {
-  var opts='<option value="">-- Selecciona una cotización --</option>';
-  cotizaciones.forEach(function(c){
-    opts+='<option value="'+esc(c.idControl)+'"'+(c.idControl===agr.idControl?' selected':'')+'>'+
-      esc(c.idControl)+' · '+esc(c.cliente)+' · '+esc(c.fecha)+' ('+(c.totalPartidas||0)+' partidas)</option>';
+var agr={ idControl:'', partidas:[], sel:{}, filtro:'', proveedores:null, provError:'', f:{clave:'',cliente:'',vig:'',fecha:''} };
+function _fechaDM(s){ var p=String(s||'').split('/'); return p.length===3 ? new Date(+p[2],+p[1]-1,+p[0]) : null; }
+function _hoy(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function agrCotsFiltradas() {
+  var f=agr.f, cli=f.cliente.trim().toUpperCase(), hoy=_hoy(), fi=null;
+  if(f.fecha){ var q=f.fecha.split('-'); fi=new Date(+q[0],+q[1]-1,+q[2]); }
+  return cotizaciones.filter(function(c){
+    if(f.clave && c.claveCliente!==f.clave) return false;
+    if(cli && String(c.cliente||'').toUpperCase().indexOf(cli)<0) return false;
+    var del=_fechaDM(c.vigenciaDel), al=_fechaDM(c.vigenciaAl);
+    if(f.vig==='vigentes' && !(del&&al&&del<=hoy&&hoy<=al)) return false;
+    if(f.vig==='vencidas' && !(al&&al<hoy)) return false;
+    if(fi && !(del&&al&&del<=fi&&fi<=al)) return false;
+    return true;
   });
+}
+function agrOpcionesCot(lista) {
+  var o='<option value="">-- Selecciona una cotización --</option>';
+  lista.forEach(function(c){
+    o+='<option value="'+esc(c.idControl)+'"'+(c.idControl===agr.idControl?' selected':'')+'>'+
+      esc(c.idControl)+' · '+esc(c.cliente)+' · vigencia '+esc(c.vigenciaDel)+' al '+esc(c.vigenciaAl)+' ('+(c.totalPartidas||0)+' partidas)</option>';
+  });
+  return o;
+}
+function renderAgrupar() {
+  var claves={}, clientes={};
+  cotizaciones.forEach(function(c){ if(c.claveCliente) claves[c.claveCliente]=1; if(c.cliente) clientes[c.cliente]=1; });
+  var oc='<option value="">Todas</option>';
+  Object.keys(claves).sort().forEach(function(k){ oc+='<option value="'+esc(k)+'"'+(k===agr.f.clave?' selected':'')+'>'+esc(k)+'</option>'; });
+  var dl=''; Object.keys(clientes).sort().forEach(function(k){ dl+='<option value="'+esc(k)+'">'; });
+  var vg=function(v,t){ return '<option value="'+v+'"'+(agr.f.vig===v?' selected':'')+'>'+t+'</option>'; };
   document.getElementById('main-ws').innerHTML=
-    '<div class="page-header"><div><h1>Agrupar Códigos</h1><p>Elige una cotización, marca las claves y genera el Excel para solicitar cotización a un proveedor</p></div></div>'+
+    '<div class="page-header"><div><h1>Agrupar Códigos</h1><p>Filtra y elige una cotización, marca las claves y genera el Excel para solicitar cotización a un proveedor</p></div></div>'+
     '<div class="card">'+
-      '<div class="agr-bar"><div><label for="agr-cot">Cotización</label>'+
-        '<select class="form-control" id="agr-cot" onchange="cargarAgrupar(this.value)">'+opts+'</select></div></div>'+
+      '<div class="agr-bar">'+
+        '<div><label for="agr-f-clave">Clave cliente</label><select class="form-control" id="agr-f-clave" style="min-width:200px" onchange="agrFiltroCot()">'+oc+'</select></div>'+
+        '<div><label for="agr-f-cliente">Cliente</label><input class="form-control" id="agr-f-cliente" list="agr-f-cli-list" style="min-width:240px" placeholder="Escribe o elige" autocomplete="off" value="'+esc(agr.f.cliente)+'" oninput="agrFiltroCot()"><datalist id="agr-f-cli-list">'+dl+'</datalist></div>'+
+        '<div><label for="agr-f-vig">Vigencia</label><select class="form-control" id="agr-f-vig" onchange="agrFiltroCot()">'+vg('','Todas')+vg('vigentes','Vigentes hoy')+vg('vencidas','Vencidas')+'</select></div>'+
+        '<div><label for="agr-f-fecha">Vigente en la fecha</label><input class="form-control" type="date" id="agr-f-fecha" value="'+esc(agr.f.fecha)+'" onchange="agrFiltroCot()"></div>'+
+        '<button class="btn btn-outline btn-sm" onclick="agrLimpiarFiltros()">Limpiar filtros</button>'+
+      '</div>'+
+      '<div class="agr-bar"><div><label for="agr-cot">Cotización <span id="agr-cot-count" style="text-transform:none;letter-spacing:0;font-weight:600"></span></label>'+
+        '<select class="form-control" id="agr-cot" onchange="cargarAgrupar(this.value)"></select></div></div>'+
       '<div id="agr-panel"></div>'+
     '</div>';
+  agrRefrescarCots();
   if(agr.idControl && agr.partidas.length) renderAgrPanel();
 }
+function agrRefrescarCots() {
+  var lista=agrCotsFiltradas();
+  var sel=document.getElementById('agr-cot'); if(!sel) return;
+  sel.innerHTML=agrOpcionesCot(lista);
+  var cnt=document.getElementById('agr-cot-count'); if(cnt) cnt.textContent='('+lista.length+' de '+cotizaciones.length+')';
+  if(agr.idControl && !lista.some(function(c){ return c.idControl===agr.idControl; })) {
+    agr.idControl=''; agr.partidas=[]; agr.sel={};
+    var panel=document.getElementById('agr-panel'); if(panel) panel.innerHTML='';
+  }
+}
+function agrFiltroCot() {
+  agr.f={ clave:document.getElementById('agr-f-clave').value, cliente:document.getElementById('agr-f-cliente').value,
+          vig:document.getElementById('agr-f-vig').value, fecha:document.getElementById('agr-f-fecha').value };
+  agrRefrescarCots();
+}
+function agrLimpiarFiltros(){ agr.f={clave:'',cliente:'',vig:'',fecha:''}; renderAgrupar(); }
 function cargarAgrupar(id) {
   agr.idControl=id; agr.partidas=[]; agr.sel={}; agr.filtro='';
   var panel=document.getElementById('agr-panel');
@@ -1318,7 +1366,7 @@ function renderAgrPanel() {
       '<button class="btn btn-primary" onclick="generarSolicitud()"><span class="material-icons" style="font-size:17px">table_view</span> Generar Excel para proveedor</button>'+
     '</div>'+
     (agr.provError?'<div class="agr-hint" style="color:#b45309">No se pudo leer la hoja 2 PROVEEDORES ('+esc(agr.provError)+'). Puedes escribir el proveedor manualmente.</div>':'')+
-    '<div class="agr-hint">El Excel se guarda en la carpeta de Drive y no incluye cliente ni precios objetivo.</div>';
+    '<div class="agr-hint">El Excel se guarda en la carpeta de solicitudes a proveedor y no incluye cliente ni precios objetivo.</div>';
   renderAgrBody();
 }
 function agrVisibles() {
@@ -1369,7 +1417,7 @@ function generarSolicitud() {
           loader(false);
           if(!res.ok){ alertErr(res.error); return; }
           Swal.fire({ icon:'success', title:'Excel generado',
-            html:'<a href="'+res.link+'" target="_blank" style="color:var(--accent);font-weight:700">'+esc(res.nombre)+'</a><br><span style="font-size:.8rem;color:#64748b">'+res.total+' clave(s) · guardado en la carpeta de Drive</span>',
+            html:'<a href="'+res.link+'" target="_blank" style="color:var(--accent);font-weight:700">'+esc(res.nombre)+'</a><br><span style="font-size:.8rem;color:#64748b">'+res.total+' clave(s) · guardado en la carpeta de solicitudes</span><br><a href="https://drive.google.com/drive/folders/1HZNk_esYDEA2xl9xJZfigCmeqZs63Tir" target="_blank" style="font-size:.8rem;color:var(--accent)">Abrir carpeta de solicitudes</a>',
             confirmButtonColor:var_accent() });
         })
         .catch(function(err){ loader(false); alertErr(err.message); });
