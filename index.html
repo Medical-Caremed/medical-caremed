@@ -1440,8 +1440,11 @@ function alertWarn(msg){ Swal.fire({icon:'warning',title:'Atención', text:msg, 
 function toInputDate(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-document.querySelectorAll('.overlay').forEach(function(ov){
-  ov.addEventListener('click',function(e){ if(e.target===ov)ov.classList.remove('open'); });
+/* Las ventanas (modales) ya NO se cierran al hacer clic fuera de ellas: solo con la X o con Cancelar.
+   Además, si la ventana de claves está abierta, el navegador avisa antes de recargar o cerrar la pestaña. */
+window.addEventListener('beforeunload',function(e){
+  var m=document.getElementById('modal-claves');
+  if(m && m.classList.contains('open')){ e.preventDefault(); e.returnValue=''; }
 });
 // Al cargar: con sesión vigente entra directo; si no, pide correo y contraseña
 document.addEventListener('DOMContentLoaded', function() {
