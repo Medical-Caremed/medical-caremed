@@ -191,6 +191,9 @@ tr:hover td{background:#f8fafc}
 tr.agr-sel td{background:#eef2ff}
 input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
 .agr-hint{font-size:.74rem;color:var(--muted);margin-top:10px}
+.lot-info{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:4px 0 14px}
+.lot-info b{color:var(--text)}
+tr.lot-extra td{background:#f8fafc}
 </style>
 </head>
 <body>
@@ -271,6 +274,9 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
         <li class="nav-item" id="nav-agrupar" onclick="navigate('agrupar',this)">
           <span class="nav-ico material-icons" style="font-size:18px">playlist_add_check</span> Agrupar Códigos
         </li>
+        <li class="nav-item" id="nav-lotes" onclick="navigate('lotes',this)">
+          <span class="nav-ico material-icons" style="font-size:18px">inventory_2</span> Cargar Lotes
+        </li>
       </ul>
       <div class="sidebar-footer">© 2026 Medical Caremed<br><strong>COTIZACIONES v3.0</strong></div>
     </nav>
@@ -314,6 +320,13 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
         </div>
       </div>
       <div class="form-section">
+        <div class="form-section-title"><span class="material-icons">gavel</span> Procedimiento</div>
+        <div class="form-grid">
+          <div class="form-group"><label>FOLIO PROCEDIMIENTO</label><input id="n-folioProc" class="form-control" placeholder="Ej. EXP-9874"></div>
+          <div class="form-group"><label>FECHA PROCEDIMIENTO</label><input type="date" id="n-fechaProc" class="form-control"></div>
+        </div>
+      </div>
+      <div class="form-section">
         <div class="form-section-title"><span class="material-icons">calendar_month</span> Vigencia</div>
         <div class="form-grid">
           <div class="form-group"><label>VIGENCIA DEL</label><input type="date" id="n-vigDel" class="form-control" onchange="calcVigAl()"></div>
@@ -351,6 +364,7 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
               <th style="min-width:170px">HIST. MARCAS</th>
               <th style="min-width:110px">MARCA</th>
               <th style="min-width:80px">UNIDADES</th>
+              <th style="min-width:90px">MUESTRA</th>
               <th style="min-width:120px">COMENTARIOS VENTAS</th>
               <th style="min-width:90px">NO. PARTIDA</th>
               <th style="min-width:100px">COSTO OBJETIVO</th>
@@ -402,7 +416,7 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbwrVytrZ3GfT1ltMWavbcejIuCDs72NiA4roLsUwUJ-XSa7Exg1N6STvxI8IkbcRmK5mQ/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzKF9TnN7bCZ1YG5i42H-RuzsjLi21CFbLWzqj0HmP8frVNmSrHMLuhvSsBIaAexq93GQ/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -651,6 +665,7 @@ function render() {
   if (seccion==='cotizaciones') renderCotizaciones();
   else if (seccion==='buscar') renderBuscar();
   else if (seccion==='agrupar') renderAgrupar();
+  else if (seccion==='lotes') renderLotes();
 }
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO COTIZACIONES
@@ -770,6 +785,8 @@ function abrirNuevaCotizacion() {
   document.getElementById('n-usuario').value='';
   document.getElementById('n-iniciales').value='';
   document.getElementById('n-folio').value='';
+  document.getElementById('n-folioProc').value='';
+  document.getElementById('n-fechaProc').value='';
   document.getElementById('n-idCliente').value='';
   document.getElementById('n-inicialesHosp').value='';
   document.getElementById('n-domCliente').value='';
@@ -832,7 +849,9 @@ function guardarCotizacion() {
     inicialesHosp:document.getElementById('n-inicialesHosp').value,
     vigenciaDel:document.getElementById('n-vigDel').value,
     vigenciaAl:document.getElementById('n-vigAl').value,
-    lugar:document.getElementById('n-lugar').value
+    lugar:document.getElementById('n-lugar').value,
+    folioProcedimiento:document.getElementById('n-folioProc').value.trim(),
+    fechaProcedimiento:document.getElementById('n-fechaProc').value
   };
   loader(true,'Guardando cotización...');
   gasPost({ accion:'guardarcotizacion', payload:datos })
@@ -878,6 +897,7 @@ function renderPartidasBody(resolvedMap) {
     if(el('fc'))  el('fc').value       =claveVisual;
     if(el('fm'))  el('fm').value       =p.marca||'';
     if(el('fu'))  el('fu').value       =p.unidades||0;
+    if(el('fmu')){ el('fmu').checked=(p.muestra==='SI'); el('fmut').innerText=(p.muestra==='SI')?'SI':'NO'; }
     if(el('fcom'))el('fcom').value     =p.comentariosVentas||'';
     if(el('fnp')) el('fnp').value      =p.noPartida||'';
     if(el('fco')) el('fco').value      =p.costoObjetivo||0;
@@ -916,6 +936,7 @@ function buildFilaHtml(idx) {
     '<td><div id="fhist'+idx+'" class="pills"></div></td>'+
     '<td><input id="fm'+idx+'" placeholder="Marca" style="min-width:90px"></td>'+
     '<td><input id="fu'+idx+'" type="number" min="0" value="0" style="min-width:70px;text-align:right"></td>'+
+    '<td style="text-align:center"><label style="display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><input type="checkbox" class="agr-chk" id="fmu'+idx+'" onchange="onMuestraChange('+idx+')"><span id="fmut'+idx+'" style="font-weight:700;font-size:.8rem">NO</span></label></td>'+
     '<td><input id="fcom'+idx+'" placeholder="Comentarios..." style="min-width:110px"></td>'+
     '<td><input id="fnp'+idx+'" placeholder="No. Partida" style="min-width:80px"></td>'+
     '<td><input id="fco'+idx+'" type="number" min="0" step="0.01" value="0" style="min-width:80px;text-align:right"></td>'+
@@ -929,12 +950,31 @@ function pillsHtml(hist) {
     .map(function(m){ return '<span class="pill">'+esc(m)+'</span>'; }).join('');
 }
 function agregarFila() {
-  filasClave.push({ clave10:'',difVariante:'',clave14:'',idClave:'',descripcion:'',um:'',marca:'',unidades:0,histMarcas:'',comentariosVentas:'',noPartida:'',costoObjetivo:0,precioObjetivo:0 });
+  filasClave.push({ clave10:'',difVariante:'',clave14:'',idClave:'',descripcion:'',um:'',marca:'',unidades:0,histMarcas:'',comentariosVentas:'',noPartida:'',costoObjetivo:0,precioObjetivo:0,muestra:'NO' });
   var idx=filasClave.length-1;
   document.getElementById('partidas-body').insertAdjacentHTML('beforeend',buildFilaHtml(idx));
   actualizarContadorPartidas();
 }
-function eliminarFila(idx){ filasClave.splice(idx,1); renderPartidasBody(); }
+function onMuestraChange(idx){
+  var c=document.getElementById('fmu'+idx), t=document.getElementById('fmut'+idx);
+  if(c&&t) t.innerText=c.checked?'SI':'NO';
+}
+/* Copia lo capturado en pantalla a filasClave para no perderlo al borrar o redibujar filas */
+function sincronizarFilas(){
+  filasClave.forEach(function(p,idx){
+    var g=function(id){ return document.getElementById(id+idx); };
+    if(g('fc'))  p.clave10=g('fc').value.trim();
+    if(g('fd'))  p.difVariante=g('fd').value.trim();
+    if(g('fm'))  p.marca=g('fm').value.trim();
+    if(g('fu'))  p.unidades=parseFloat(g('fu').value)||0;
+    if(g('fmu')) p.muestra=g('fmu').checked?'SI':'NO';
+    if(g('fcom'))p.comentariosVentas=g('fcom').value.trim();
+    if(g('fnp')) p.noPartida=g('fnp').value.trim();
+    if(g('fco')) p.costoObjetivo=parseFloat(g('fco').value)||0;
+    if(g('fpo')) p.precioObjetivo=parseFloat(g('fpo').value)||0;
+  });
+}
+function eliminarFila(idx){ sincronizarFilas(); filasClave.splice(idx,1); renderPartidasBody(); }
 function onClaveInput(idx) {
   var clave10=document.getElementById('fc'+idx)?document.getElementById('fc'+idx).value.trim():'';
   if(!clave10)return;
@@ -981,6 +1021,7 @@ function guardarPartidas() {
       descripcion:p.descripcion||(document.getElementById('fdesc'+idx)?document.getElementById('fdesc'+idx).innerText.replace(/^--$/,''):''),
       um:p.um||'', marca:document.getElementById('fm'+idx)?document.getElementById('fm'+idx).value.trim():(p.marca||''),
       unidades:parseFloat(document.getElementById('fu'+idx)?document.getElementById('fu'+idx).value:0)||0,
+      muestra:(document.getElementById('fmu'+idx)&&document.getElementById('fmu'+idx).checked)?'SI':'NO',
       histMarcas:p.histMarcas||'',
       comentariosVentas:document.getElementById('fcom'+idx)?document.getElementById('fcom'+idx).value.trim():(p.comentariosVentas||''),
       noPartida:    document.getElementById('fnp'+idx)?document.getElementById('fnp'+idx).value.trim():(p.noPartida||''),
@@ -1014,6 +1055,7 @@ function guardarPartidas() {
       x: (p.um          || '').substring(0,10),
       h: (p.histMarcas  || '').substring(0,60),
       np: (p.noPartida    || '').substring(0,20),
+      mu: (p.muestra==='SI') ? 'SI' : 'NO',
       co: parseFloat(p.costoObjetivo)  || 0,
       po: parseFloat(p.precioObjetivo) || 0
     };
@@ -1082,7 +1124,7 @@ function procesarMasiva() {
     var cols=line.split('\t');
     var c10=cols[0]?cols[0].trim():'';
     if(!c10)return;
-    nuevas.push({ idClave:'',clave10:"'"+c10,difVariante:cols[1]?cols[1].trim():'',unidades:parseFloat(cols[2])||0,comentariosVentas:cols[3]?cols[3].trim():'',noPartida:cols[4]?cols[4].trim():'',costoObjetivo:parseFloat(cols[5])||0,precioObjetivo:parseFloat(cols[6])||0,clave14:'',descripcion:'',um:'',marca:'',histMarcas:'',precioUnit:0 });
+    nuevas.push({ muestra:'NO',idClave:'',clave10:"'"+c10,difVariante:cols[1]?cols[1].trim():'',unidades:parseFloat(cols[2])||0,comentariosVentas:cols[3]?cols[3].trim():'',noPartida:cols[4]?cols[4].trim():'',costoObjetivo:parseFloat(cols[5])||0,precioObjetivo:parseFloat(cols[6])||0,clave14:'',descripcion:'',um:'',marca:'',histMarcas:'',precioUnit:0 });
   });
   if(nuevas.length===0){alertWarn('No se encontraron datos válidos.');return;}
   closeModal('modal-masiva');
@@ -1347,7 +1389,7 @@ function cargarAgrupar(id) {
 function renderAgrPanel() {
   var panel=document.getElementById('agr-panel'); if(!panel) return;
   if(!agr.partidas.length){ panel.innerHTML='<div class="no-data"><span class="material-icons">inbox</span>Esta cotización no tiene claves.</div>'; return; }
-  var dl=''; (agr.proveedores||[]).forEach(function(n){ dl+='<option value="'+esc(n)+'">'; });
+  var dl='<option value="">-- Selecciona un proveedor --</option>'; (agr.proveedores||[]).forEach(function(n){ dl+='<option value="'+esc(n)+'">'+esc(n)+'</option>'; });
   panel.innerHTML=
     '<div class="agr-toolbar">'+
       '<div class="search-wrap"><span class="material-icons">search</span><input class="search-input" id="agr-filtro" placeholder="Filtrar por clave, descripción o marca..." value="'+esc(agr.filtro)+'" oninput="agrFiltrar(this.value)"></div>'+
@@ -1361,12 +1403,11 @@ function renderAgrPanel() {
     '</tr></thead><tbody id="agr-body"></tbody></table></div>'+
     '<div class="agr-footer">'+
       '<div><label for="agr-prov">Proveedor</label>'+
-        '<input class="form-control" id="agr-prov" list="agr-prov-list" placeholder="Elige o escribe un proveedor" autocomplete="off">'+
-        '<datalist id="agr-prov-list">'+dl+'</datalist></div>'+
+        '<select class="form-control" id="agr-prov" style="min-width:340px">'+dl+'</select></div>'+
       '<button class="btn btn-primary" onclick="generarSolicitud()"><span class="material-icons" style="font-size:17px">table_view</span> Generar Excel para proveedor</button>'+
     '</div>'+
-    (agr.provError?'<div class="agr-hint" style="color:#b45309">No se pudo leer la hoja 2 PROVEEDORES ('+esc(agr.provError)+'). Puedes escribir el proveedor manualmente.</div>':'')+
-    '<div class="agr-hint">El Excel se guarda en la carpeta de solicitudes a proveedor y no incluye cliente ni precios objetivo.</div>';
+    (agr.provError?'<div class="agr-hint" style="color:#b45309">No se pudo leer la hoja 2 PROVEEDORES ('+esc(agr.provError)+').</div>':
+     (!(agr.proveedores||[]).length?'<div class="agr-hint" style="color:#b45309">La hoja 2 PROVEEDORES no tiene proveedores (columna B: NOMBRE PROVEEDOR).</div>':''));
   renderAgrBody();
 }
 function agrVisibles() {
@@ -1402,11 +1443,149 @@ function agrSelTodas(on){
   agrVisibles().forEach(function(p){ if(on) agr.sel[p.idFormato]=true; else delete agr.sel[p.idFormato]; });
   renderAgrBody();
 }
+
+// ══════════════════════════════════════════════════════════════
+//  MÓDULO CARGAR LOTES  (hoja CARGAR LOTES, ligada por ID COTIZACIONES PROVEEDORES)
+// ══════════════════════════════════════════════════════════════
+var lot={ sols:null, filtro:'', id:'', info:null, lineas:[], ent:[] };
+function renderLotes() {
+  document.getElementById('main-ws').innerHTML=
+    '<div class="page-header"><div><h1>Cargar Lotes</h1><p>Elige la solicitud enviada al proveedor, marca las claves y captura cantidad y lote</p></div></div>'+
+    '<div class="card">'+
+      '<div class="agr-bar">'+
+        '<div><label for="lot-filtro">Buscar solicitud</label><input class="form-control" id="lot-filtro" style="min-width:240px" placeholder="ID, cotización, proveedor o folio" value="'+esc(lot.filtro)+'" oninput="lotFiltrar(this.value)"></div>'+
+        '<div><label for="lot-sel">Solicitud a proveedor <span id="lot-count" style="text-transform:none;letter-spacing:0;font-weight:600"></span></label><select class="form-control" id="lot-sel" style="min-width:520px;max-width:100%" onchange="cargarLineasLotes(this.value)"></select></div>'+
+        '<button class="btn btn-outline btn-sm" onclick="lot.sols=null;cargarSolicitudesLotes()"><span class="material-icons" style="font-size:15px">refresh</span> Actualizar</button>'+
+      '</div>'+
+      '<div id="lot-panel"></div>'+
+    '</div>';
+  if(lot.sols) { lotLlenarSelect(); if(lot.id && lot.lineas.length) renderLotesTabla(); }
+  else cargarSolicitudesLotes();
+}
+function cargarSolicitudesLotes() {
+  var panel=document.getElementById('lot-panel');
+  var sel=document.getElementById('lot-sel'); if(sel) sel.innerHTML='<option value="">Cargando solicitudes...</option>';
+  gasGet('solicitudes').then(function(res){
+    if(!res.ok){ if(panel) panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; if(sel) sel.innerHTML=''; return; }
+    lot.sols=res.solicitudes; lotLlenarSelect();
+  }).catch(function(err){ if(panel) panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
+}
+function lotSolsFiltradas() {
+  var f=lot.filtro.trim().toUpperCase();
+  return (lot.sols||[]).filter(function(s){
+    return !f || (s.id+' '+s.idControl+' '+s.proveedor+' '+s.folio).toUpperCase().indexOf(f)>=0;
+  });
+}
+function lotLlenarSelect() {
+  var sel=document.getElementById('lot-sel'); if(!sel) return;
+  var lista=lotSolsFiltradas();
+  var o='<option value="">-- Selecciona una solicitud --</option>';
+  lista.forEach(function(s){
+    o+='<option value="'+esc(s.id)+'"'+(s.id===lot.id?' selected':'')+'>'+esc(s.id)+' · '+esc(s.idControl)+' · '+esc(s.proveedor)+' · '+esc(s.fecha)+' ('+s.lineas+' claves)</option>';
+  });
+  sel.innerHTML=o;
+  var c=document.getElementById('lot-count'); if(c) c.textContent='('+lista.length+' de '+(lot.sols||[]).length+')';
+  if(lot.id && !lista.some(function(s){ return s.id===lot.id; })){ lot.id=''; lot.lineas=[]; lot.ent=[]; var p=document.getElementById('lot-panel'); if(p) p.innerHTML=''; }
+}
+function lotFiltrar(v){ lot.filtro=v; lotLlenarSelect(); }
+function cargarLineasLotes(id) {
+  lot.id=id; lot.lineas=[]; lot.ent=[]; lot.info=null;
+  var panel=document.getElementById('lot-panel');
+  if(!id){ panel.innerHTML=''; return; }
+  panel.innerHTML='<div class="no-data"><span class="material-icons">hourglass_top</span>Cargando claves...</div>';
+  gasGet('lineassolicitud',{idCP:id}).then(function(res){
+    if(lot.id!==id) return;
+    if(!res.ok){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; return; }
+    lot.lineas=res.lineas; lot.info=res.info;
+    lot.ent=res.lineas.map(function(){ return [{cant:'',lote:'',notas:'',sel:false}]; });
+    renderLotesTabla();
+  }).catch(function(err){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
+}
+function renderLotesTabla() {
+  var panel=document.getElementById('lot-panel'); if(!panel) return;
+  if(!lot.lineas.length){ panel.innerHTML='<div class="no-data"><span class="material-icons">inbox</span>Esta solicitud no tiene claves.</div>'; return; }
+  var i=lot.info||{}, rows='';
+  lot.lineas.forEach(function(l,li){
+    lot.ent[li].forEach(function(e,ei){
+      var first=(ei===0), k=li+'_'+ei;
+      rows+='<tr class="'+(first?'':'lot-extra')+'">'+
+        '<td><input type="checkbox" class="agr-chk" id="lchk_'+k+'" '+(e.sel?'checked ':'')+'onchange="lotSel('+li+','+ei+',this.checked)"></td>'+
+        '<td>'+(first?esc(l.noPartida||'--'):'')+'</td>'+
+        '<td style="font-weight:700;color:var(--accent)">'+(first?esc(l.clave10):'')+'</td>'+
+        '<td>'+(first?esc(l.difVar):'')+'</td>'+
+        '<td style="max-width:300px;white-space:normal">'+(first?esc(l.descripcion):'')+'</td>'+
+        '<td>'+(first?esc(l.um):'')+'</td>'+
+        '<td>'+(first?esc(l.cantidad):'')+'</td>'+
+        '<td style="white-space:normal;min-width:90px">'+(first?('<b>'+esc(l.cargado)+'</b>'+(l.lotes?'<div style="font-size:.68rem;color:var(--muted)">'+esc(l.lotes)+'</div>':'')):'')+'</td>'+
+        '<td><input type="number" min="0" step="any" id="lc_'+k+'" value="'+esc(e.cant)+'" style="width:90px;text-align:right" oninput="lotInput('+li+','+ei+',\'cant\',this.value)"></td>'+
+        '<td><input type="text" id="ll_'+k+'" value="'+esc(e.lote)+'" style="width:130px" placeholder="Lote" oninput="lotInput('+li+','+ei+',\'lote\',this.value)"></td>'+
+        '<td><input type="text" id="ln_'+k+'" value="'+esc(e.notas)+'" style="width:150px" placeholder="Notas" oninput="lotInput('+li+','+ei+',\'notas\',this.value)"></td>'+
+        '<td>'+(first?'<button class="btn-icon" title="Agregar otro lote de esta clave" onclick="lotAdd('+li+')"><span class="material-icons" style="font-size:16px">add_circle</span></button>':
+                      '<button class="btn-icon" style="color:var(--danger)" title="Quitar" onclick="lotDel('+li+','+ei+')"><span class="material-icons" style="font-size:15px">delete</span></button>')+'</td>'+
+      '</tr>';
+    });
+  });
+  panel.innerHTML=
+    '<div class="lot-info"><span>Proveedor: <b>'+esc(i.proveedor||'')+'</b></span><span>Cotización: <b>'+esc(i.idControl||'')+'</b></span><span>Folio procedimiento: <b>'+esc(i.folio||'--')+'</b></span><span>Fecha procedimiento: <b>'+esc(i.fechaProc||'--')+'</b></span></div>'+
+    '<div class="agr-toolbar"><button class="btn btn-outline btn-sm" onclick="lotMarcar(true)">Marcar todas</button><button class="btn btn-outline btn-sm" onclick="lotMarcar(false)">Limpiar marcas</button><span class="agr-count" id="lot-contador"></span></div>'+
+    '<div class="table-scroll-wrap" style="max-height:calc(100vh - 430px);min-height:220px"><table><thead><tr>'+
+      '<th style="width:36px"></th><th>PART.</th><th>CÓDIGO</th><th>DIF Y VAR</th><th>DESCRIPCIÓN</th><th>UM</th><th>CANT. SOLIC.</th><th>CARGADO</th><th>CANTIDAD</th><th>LOTE</th><th>NOTAS</th><th style="width:40px"></th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="agr-footer"><button class="btn btn-primary" onclick="guardarLotes()"><span class="material-icons" style="font-size:17px">save</span> Guardar lotes</button></div>';
+  lotContar();
+}
+function lotContar(){
+  var n=0; lot.ent.forEach(function(a){ a.forEach(function(e){ if(e.sel) n++; }); });
+  var c=document.getElementById('lot-contador'); if(c) c.textContent=n+' marcada(s)';
+}
+function lotSel(li,ei,on){ lot.ent[li][ei].sel=on; lotContar(); }
+function lotInput(li,ei,campo,v){
+  var e=lot.ent[li][ei]; e[campo]=v;
+  if((campo==='cant'||campo==='lote') && v && !e.sel){ e.sel=true; var c=document.getElementById('lchk_'+li+'_'+ei); if(c) c.checked=true; lotContar(); }
+}
+function lotMarcar(on){ lot.ent.forEach(function(a){ a[0].sel=on; }); renderLotesTabla(); }
+function lotAdd(li){ lot.ent[li].push({cant:'',lote:'',notas:'',sel:true}); renderLotesTabla(); }
+function lotDel(li,ei){ lot.ent[li].splice(ei,1); renderLotesTabla(); }
+function guardarLotes() {
+  var items=[], falta=null;
+  lot.lineas.forEach(function(l,li){
+    lot.ent[li].forEach(function(e){
+      if(!e.sel) return;
+      var cant=parseFloat(e.cant), lote=String(e.lote||'').trim();
+      if(!(cant>0)||!lote){ if(!falta) falta=l; return; }
+      items.push({ rowIndex:l.rowIndex, cantidad:cant, lote:lote, notas:String(e.notas||'').trim() });
+    });
+  });
+  if(falta){ alertWarn('Captura cantidad (mayor a 0) y lote en todas las filas marcadas (partida '+(falta.noPartida||falta.clave10)+').'); return; }
+  if(!items.length){ alertWarn('Marca al menos una clave y captura cantidad y lote.'); return; }
+  Swal.fire({ title:'Guardar lotes', html:items.length+' registro(s) para <b>'+esc(lot.id)+'</b>', icon:'question', showCancelButton:true,
+              confirmButtonColor:var_accent(), cancelButtonText:'Cancelar', confirmButtonText:'Guardar' })
+    .then(function(r){
+      if(!r.isConfirmed) return;
+      var CH=15, idCP=lot.id, grupos=[];
+      for(var g=0; g<items.length; g+=CH) grupos.push(items.slice(g,g+CH));
+      loader(true,'Guardando lotes...');
+      grupos.reduce(function(chain,grupo,gi){
+        return chain.then(function(){
+          loader(true,'Guardando lotes ('+(gi+1)+' de '+grupos.length+')...');
+          return gasGet('guardarlotes',{idCP:idCP, items:grupo}).then(function(res){
+            if(!res.ok) throw new Error(res.error||'Error al guardar');
+          });
+        });
+      }, Promise.resolve())
+      .then(function(){
+        loader(false);
+        Swal.fire({ icon:'success', title:'Lotes guardados', text:items.length+' registro(s) en CARGAR LOTES.', confirmButtonColor:var_accent() });
+        cargarLineasLotes(idCP);
+      })
+      .catch(function(err){ loader(false); alertErr(err.message+' — Revisa CARGAR LOTES antes de reintentar para no duplicar.'); });
+    });
+}
 function generarSolicitud() {
   var ids=Object.keys(agr.sel).filter(function(k){ return agr.sel[k]; });
   var prov=(document.getElementById('agr-prov').value||'').trim();
   if(!ids.length){ alertWarn('Selecciona al menos una clave.'); return; }
-  if(!prov){ alertWarn('Elige o escribe el proveedor.'); return; }
+  if(!prov){ alertWarn('Selecciona el proveedor.'); return; }
   Swal.fire({ title:'Generar solicitud', html:ids.length+' clave(s) para <b>'+esc(prov)+'</b>', icon:'question', showCancelButton:true,
               confirmButtonColor:var_accent(), cancelButtonText:'Cancelar', confirmButtonText:'Generar Excel' })
     .then(function(r){
@@ -1416,8 +1595,9 @@ function generarSolicitud() {
         .then(function(res){
           loader(false);
           if(!res.ok){ alertErr(res.error); return; }
-          Swal.fire({ icon:'success', title:'Excel generado',
-            html:'<a href="'+res.link+'" target="_blank" style="color:var(--accent);font-weight:700">'+esc(res.nombre)+'</a><br><span style="font-size:.8rem;color:#64748b">'+res.total+' clave(s) · guardado en la carpeta de solicitudes</span><br><a href="https://drive.google.com/drive/folders/1HZNk_esYDEA2xl9xJZfigCmeqZs63Tir" target="_blank" style="font-size:.8rem;color:var(--accent)">Abrir carpeta de solicitudes</a>',
+          var rg=res.registro||{}, rgTxt=rg.ok?('<br><span style="font-size:.8rem;color:#065f46">Registrado en COTIZACIONES PROVEEDORES · '+esc(rg.id)+' ('+rg.filas+' filas)</span>'):('<br><span style="font-size:.8rem;color:#b45309">⚠ No se registró en COTIZACIONES PROVEEDORES: '+esc(rg.error||'sin detalle')+'</span>');
+          Swal.fire({ icon:rg.ok?'success':'warning', title:'Excel generado',
+            html:'<a href="'+res.link+'" target="_blank" style="color:var(--accent);font-weight:700">'+esc(res.nombre)+'</a><br><span style="font-size:.8rem;color:#64748b">'+res.total+' clave(s) · guardado en la carpeta de solicitudes</span>'+rgTxt+'<br><a href="https://drive.google.com/drive/folders/1HZNk_esYDEA2xl9xJZfigCmeqZs63Tir" target="_blank" style="font-size:.8rem;color:var(--accent)">Abrir carpeta de solicitudes</a>',
             confirmButtonColor:var_accent() });
         })
         .catch(function(err){ loader(false); alertErr(err.message); });
