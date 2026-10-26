@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --primary:#0f172a;--primary-lt:#1e293b;--primary-dk:#080f1a;
@@ -194,6 +195,20 @@ input[type=checkbox].agr-chk{width:16px;height:16px;accent-color:var(--accent);c
 .lot-info{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:4px 0 14px}
 .lot-info b{color:var(--text)}
 tr.lot-extra td{background:#f8fafc}
+.pv-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fff}
+.pv-card.dirty{border-color:var(--accent);box-shadow:0 0 0 2px rgba(79,70,229,.14)}
+.pv-title{font-size:.86rem;color:var(--text)}
+.pv-title b{color:var(--accent)}
+.pv-desc{font-size:.8rem;color:var(--muted);margin:4px 0 8px}
+.pv-ro{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.76rem;color:var(--muted)}
+.pv-ro b{color:var(--text)}
+.pv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px}
+.pv-grid label{display:block;font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.pv-wide{grid-column:1/-1}
+.pv-total{font-weight:700;font-size:.95rem;padding:9px 0}
+.pv-filelink{font-size:.78rem;margin-bottom:4px}
+.pv-filelink a{color:var(--accent);font-weight:700}
+.pv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
 </style>
 </head>
 <body>
@@ -276,6 +291,9 @@ tr.lot-extra td{background:#f8fafc}
         </li>
         <li class="nav-item" id="nav-lotes" onclick="navigate('lotes',this)">
           <span class="nav-ico material-icons" style="font-size:18px">inventory_2</span> Cargar Lotes
+        </li>
+        <li class="nav-item" id="nav-portal" onclick="navigate('portal',this)">
+          <span class="nav-ico material-icons" style="font-size:18px">storefront</span> Portal Proveedor
         </li>
       </ul>
       <div class="sidebar-footer">© 2026 Medical Caremed<br><strong>COTIZACIONES v3.0</strong></div>
@@ -416,7 +434,7 @@ tr.lot-extra td{background:#f8fafc}
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbzKF9TnN7bCZ1YG5i42H-RuzsjLi21CFbLWzqj0HmP8frVNmSrHMLuhvSsBIaAexq93GQ/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbyristtt2NEzxwLZY0a7kbqpcCwU6FP3g93mUhPVeIKOPgKHWprXvoty1nFdIHaH49Sng/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -539,7 +557,7 @@ function mostrarLogin() {
 function mostrarApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display   = 'flex';
-  initApp();
+  if (SESSION && SESSION.tipoVista === 'PROVEEDOR') initPortalProveedor(); else initApp();
 }
 function togglePass() {
   var inp = document.getElementById('lg-pass');
@@ -564,7 +582,7 @@ function doLogin() {
       btnEl.disabled = false; inner.textContent = 'INICIAR SESIÓN';
       if (res && res.ok) {
         SESSION = { token:res.token, nombre:res.nombre, cuenta:res.correo, iniciales:res.iniciales,
-                    tipoVista:res.tipoVista, rol:res.tipoVista };
+                    tipoVista:res.tipoVista, rol:res.tipoVista, proveedor:res.proveedor||'' };
         try { sessionStorage.setItem('mc_cot_sesion', JSON.stringify(SESSION)); } catch(e) {}
         document.getElementById('lg-pass').value = '';
         _sesionAvisada = false;
@@ -636,6 +654,18 @@ function doLogout() {
     });
 }
 function var_accent(){ return '#4f46e5'; }
+/* Usuario con TIPO DE VISTA = PROVEEDOR: solo ve el Portal Proveedor */
+function esProveedor(){ return !!(SESSION && SESSION.tipoVista === 'PROVEEDOR'); }
+function initPortalProveedor() {
+  var nombre = SESSION.nombre || SESSION.cuenta || 'Usuario';
+  var ini = nombre.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = ini;
+  document.getElementById('user-name').textContent   = nombre;
+  document.getElementById('user-role').textContent   = 'PROVEEDOR';
+  ['nav-cotizaciones','nav-buscar','nav-agrupar','nav-lotes'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
+  startClock();
+  navigate('portal', document.getElementById('nav-portal'));
+}
 // ══════════════════════════════════════════════════════════════
 //  CARGAR COTIZACIONES
 // ══════════════════════════════════════════════════════════════
@@ -666,6 +696,7 @@ function render() {
   else if (seccion==='buscar') renderBuscar();
   else if (seccion==='agrupar') renderAgrupar();
   else if (seccion==='lotes') renderLotes();
+  else if (seccion==='portal') renderPortal();
 }
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO COTIZACIONES
@@ -1580,6 +1611,218 @@ function guardarLotes() {
       })
       .catch(function(err){ loader(false); alertErr(err.message+' — Revisa CARGAR LOTES antes de reintentar para no duplicar.'); });
     });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MÓDULO PORTAL PROVEEDOR
+//  El proveedor ve solo las cotizaciones cuyo PROVEEDOR coincide con el campo PROVEEDOR de su usuario.
+// ══════════════════════════════════════════════════════════════
+var pv={ prov:'', desde:'', hasta:'', lista:[], sel:'', lineas:[], dirty:{}, provs:null };
+var PV_FILES={ foto:{key:'foto',label:'FOTO PRODUCTO',accept:'image/*',ext:['jpg','jpeg','png','gif','webp']},
+               regsan:{key:'regSanFile',label:'CARGAR REGISTRO SANITARIO',accept:'.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx',ext:['pdf','jpg','jpeg','png','doc','docx','xls','xlsx']},
+               catalogo:{key:'catalogoFile',label:'CARGAR CATÁLOGO',accept:'.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx',ext:['pdf','jpg','jpeg','png','doc','docx','xls','xlsx']},
+               certificados:{key:'certificados',label:'CARGAR CERTIFICADOS',accept:'.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx',ext:['pdf','jpg','jpeg','png','doc','docx','xls','xlsx']} };
+function pvPost(accion,payload){
+  var body=Object.assign({accion:accion,token:(SESSION&&SESSION.token)||''},payload);
+  return fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .then(function(res){ if(res&&res.noAuth){ sesionExpirada(); return new Promise(function(){}); } return res; });
+}
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+function pvDirtyCount(){ return Object.keys(pv.dirty).length; }
+function renderPortal() {
+  var admin=!esProveedor();
+  var provCampo = admin
+    ? '<div><label for="pv-prov">Proveedor</label><select class="form-control" id="pv-prov" style="min-width:240px" onchange="pvFiltro()"><option value="">Todos</option></select></div>'
+    : '<div><label>Proveedor</label><div class="form-control" style="background:#f1f5f9;min-width:240px;font-weight:700">'+esc(SESSION.proveedor||'')+'</div></div>';
+  document.getElementById('main-ws').innerHTML=
+    '<div class="page-header"><div><h1>Portal Proveedor</h1><p>Consulta tus cotizaciones solicitadas y captura costos, datos del producto y documentos</p></div></div>'+
+    '<div class="card">'+
+      '<div class="agr-bar">'+provCampo+
+        '<div><label for="pv-desde">Fecha desde</label><input class="form-control" type="date" id="pv-desde" value="'+esc(pv.desde)+'" onchange="pvFiltro()"></div>'+
+        '<div><label for="pv-hasta">Fecha hasta</label><input class="form-control" type="date" id="pv-hasta" value="'+esc(pv.hasta)+'" onchange="pvFiltro()"></div>'+
+        '<button class="btn btn-outline btn-sm" onclick="pvLimpiar()">Limpiar filtros</button>'+
+      '</div>'+
+      '<div class="agr-bar"><div><label for="pv-sel">Número de cotización <span id="pv-count" style="text-transform:none;letter-spacing:0;font-weight:600"></span></label>'+
+        '<select class="form-control" id="pv-sel" style="min-width:520px;max-width:100%" onchange="pvElegir(this.value)"></select></div>'+
+        '<button class="btn btn-outline btn-sm" onclick="pvExcel()"><span class="material-icons" style="font-size:15px">download</span> Descargar Excel</button></div>'+
+      '<div id="pv-panel"></div>'+
+    '</div>';
+  if(admin){
+    var fill=function(){ var s=document.getElementById('pv-prov'); if(!s) return; var o='<option value="">Todos</option>'; (pv.provs||[]).forEach(function(n){ o+='<option value="'+esc(n)+'"'+(n===pv.prov?' selected':'')+'>'+esc(n)+'</option>'; }); s.innerHTML=o; };
+    if(pv.provs) fill(); else gasGet('proveedores').then(function(r){ pv.provs=r.ok?r.proveedores:[]; fill(); }).catch(function(){ pv.provs=[]; });
+  }
+  pvCargarLista();
+}
+function pvFiltro() {
+  var p=document.getElementById('pv-prov');
+  if(p) pv.prov=p.value;
+  pv.desde=document.getElementById('pv-desde').value; pv.hasta=document.getElementById('pv-hasta').value;
+  pvConfirmarDescarte(function(){ pv.sel=''; pv.lineas=[]; pv.dirty={}; document.getElementById('pv-panel').innerHTML=''; pvCargarLista(); });
+}
+function pvLimpiar(){ pv.prov=''; pv.desde=''; pv.hasta=''; pvConfirmarDescarte(function(){ pv.sel=''; pv.lineas=[]; pv.dirty={}; renderPortal(); }); }
+function pvConfirmarDescarte(fn) {
+  if(!pvDirtyCount()){ fn(); return; }
+  Swal.fire({ title:'Cambios sin guardar', text:'Si continúas se perderán los cambios capturados.', icon:'warning', showCancelButton:true,
+              confirmButtonColor:'#f59e0b', cancelButtonText:'Seguir editando', confirmButtonText:'Descartar y continuar' })
+    .then(function(r){ if(r.isConfirmed) fn(); else { var s=document.getElementById('pv-sel'); if(s) s.value=pv.sel; } });
+}
+function pvCargarLista() {
+  var sel=document.getElementById('pv-sel'); if(!sel) return;
+  sel.innerHTML='<option value="">Cargando cotizaciones...</option>';
+  gasGet('portalcotizaciones',{desde:pv.desde,hasta:pv.hasta,proveedor:pv.prov}).then(function(res){
+    var s=document.getElementById('pv-sel'); if(!s) return;
+    if(!res.ok){ s.innerHTML=''; document.getElementById('pv-panel').innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; return; }
+    pv.lista=res.lista;
+    var mostrarProv=!esProveedor() && !pv.prov;
+    var o='<option value="">-- Selecciona una cotización --</option>';
+    res.lista.forEach(function(c,i){
+      o+='<option value="'+i+'"'+(String(i)===String(pv.sel)?' selected':'')+'>'+esc(c.idControl)+(mostrarProv?' · '+esc(c.proveedor):'')+' · '+esc(c.fecha)+(c.folio?' · Folio '+esc(c.folio):'')+' ('+c.lineas+' claves)</option>';
+    });
+    s.innerHTML=o;
+    var n=document.getElementById('pv-count'); if(n) n.textContent='('+res.lista.length+')';
+    if(!res.lista.length) document.getElementById('pv-panel').innerHTML='<div class="no-data"><span class="material-icons">inbox</span>No hay cotizaciones para los filtros seleccionados.</div>';
+  }).catch(function(err){ var p=document.getElementById('pv-panel'); if(p) p.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
+}
+function pvElegir(v) {
+  pvConfirmarDescarte(function(){
+    pv.sel=v; pv.lineas=[]; pv.dirty={};
+    var panel=document.getElementById('pv-panel');
+    if(v===''||!pv.lista[v]){ panel.innerHTML=''; return; }
+    pvCargarLineas();
+  });
+}
+function pvCargarLineas() {
+  var item=pv.lista[pv.sel], panel=document.getElementById('pv-panel'); if(!item||!panel) return;
+  panel.innerHTML='<div class="no-data"><span class="material-icons">hourglass_top</span>Cargando claves...</div>';
+  gasGet('portallineas',{idControl:item.idControl,proveedor:item.proveedor}).then(function(res){
+    if(!res.ok){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; return; }
+    pv.lineas=res.lineas; pv.dirty={}; pvRenderPanel();
+  }).catch(function(err){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
+}
+function pvMoney(n){ return '$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function pvTotalTxt(l){
+  var c=(l.costo===''||l.costo===null)?null:Number(l.costo), v=(l.iva===''||l.iva===null)?null:Number(l.iva);
+  if(c===null&&v===null) return '—';
+  return pvMoney((c||0)+(v||0));
+}
+function pvFileHtml(i,campo,val){
+  var f=PV_FILES[campo], u=safeUrl(val);
+  return '<div><label>'+f.label+'</label>'+
+    '<div class="pv-filelink" id="pvfl_'+campo+'_'+i+'">'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">Ver archivo</a>':'<span style="color:var(--muted)">Sin archivo</span>')+'</div>'+
+    '<input type="file" accept="'+f.accept+'" onchange="pvSubir('+i+',\''+campo+'\',this)"></div>';
+}
+function pvCardHtml(l,i) {
+  var inp=function(campo,tipo,extra){ return '<input class="form-control" type="'+tipo+'" id="pv_'+campo+'_'+i+'" value="'+esc(l[campo])+'" '+(extra||'')+' oninput="pvInput('+i+',\''+campo+'\',this.value)">'; };
+  return '<div class="pv-card'+(pv.dirty[l.rowIndex]?' dirty':'')+'" id="pvc'+i+'">'+
+    '<div class="pv-title">Partida <b>'+esc(l.noPartida||'--')+'</b> · Código <b>'+esc(l.clave10)+'</b> · Dif/Var '+esc(l.difVar)+' · Clave completa '+esc(l.clave14)+'</div>'+
+    '<div class="pv-desc">'+esc(l.descripcion)+'</div>'+
+    '<div class="pv-ro"><span>UM: <b>'+esc(l.um)+'</b></span><span>Cantidad: <b>'+esc(l.cantidad)+'</b></span><span>Muestra: <b>'+esc(l.muestra||'--')+'</b></span><span>Comentarios ventas: <b>'+esc(l.comentariosVentas||'--')+'</b></span></div>'+
+    '<div class="pv-grid">'+
+      '<div><label>MARCA</label>'+inp('marca','text','maxlength="100"')+'</div>'+
+      '<div><label>CRÉDITO O CONTADO</label><select class="form-control" id="pv_credito_'+i+'" onchange="pvInput('+i+',\'credito\',this.value)">'+
+        ['','CRÉDITO','CONTADO'].map(function(o){ return '<option value="'+o+'"'+(l.credito===o?' selected':'')+'>'+(o||'-- Selecciona --')+'</option>'; }).join('')+'</select></div>'+
+      '<div><label>No. REG. SANITARIO</label>'+inp('regSan','text','maxlength="100"')+'</div>'+
+      '<div><label>PROCEDENCIA / ORIGEN</label>'+inp('procedencia','text','maxlength="100"')+'</div>'+
+      '<div><label>No. REFERENCIA O CATÁLOGO</label>'+inp('referencia','text','maxlength="100"')+'</div>'+
+      '<div><label>COSTO</label>'+inp('costo','number','min="0" step="0.01" placeholder="0.00"')+'</div>'+
+      '<div><label>I.V.A. COSTO</label>'+inp('iva','number','min="0" step="0.01" placeholder="0.00"')+'</div>'+
+      '<div><label>TOTAL COSTO</label><div class="pv-total" id="pv_total_'+i+'">'+pvTotalTxt(l)+'</div></div>'+
+      '<div class="pv-wide"><label>OBSERVACIONES COMPRAS</label><textarea class="form-control" id="pv_observaciones_'+i+'" rows="2" maxlength="1000" oninput="pvInput('+i+',\'observaciones\',this.value)">'+esc(l.observaciones)+'</textarea></div>'+
+      pvFileHtml(i,'foto',l.foto)+pvFileHtml(i,'regsan',l.regSanFile)+pvFileHtml(i,'catalogo',l.catalogoFile)+pvFileHtml(i,'certificados',l.certificados)+
+    '</div></div>';
+}
+function pvRenderPanel() {
+  var panel=document.getElementById('pv-panel'); if(!panel) return;
+  if(!pv.lineas.length){ panel.innerHTML='<div class="no-data"><span class="material-icons">inbox</span>Sin claves.</div>'; return; }
+  var l0=pv.lineas[0], cards='';
+  pv.lineas.forEach(function(l,i){ cards+=pvCardHtml(l,i); });
+  var btn='<button class="btn btn-primary" onclick="pvGuardar()"><span class="material-icons" style="font-size:17px">save</span> Guardar cambios</button>';
+  panel.innerHTML=
+    '<div class="lot-info"><span>Cotización: <b>'+esc(l0.idControl)+'</b></span><span>Fecha: <b>'+esc(l0.fecha)+'</b></span><span>Proveedor: <b>'+esc(l0.proveedor)+'</b></span><span>Folio procedimiento: <b>'+esc(l0.folio||'--')+'</b></span><span>Fecha procedimiento: <b>'+esc(l0.fechaProc||'--')+'</b></span></div>'+
+    '<div class="pv-bar">'+btn+'<span class="agr-count" id="pv-contador" style="margin-left:0"></span></div>'+cards+'<div class="pv-bar">'+btn+'</div>';
+  pvContar();
+}
+function pvContar(){ var c=document.getElementById('pv-contador'); if(c){ var n=pvDirtyCount(); c.textContent=n?(n+' partida(s) con cambios sin guardar'):''; } }
+function pvInput(i,campo,v) {
+  var l=pv.lineas[i]; l[campo]=v; pv.dirty[l.rowIndex]=true;
+  var card=document.getElementById('pvc'+i); if(card) card.classList.add('dirty');
+  if(campo==='costo'||campo==='iva'){ var t=document.getElementById('pv_total_'+i); if(t) t.textContent=pvTotalTxt(l); }
+  pvContar();
+}
+function pvGuardar() {
+  var items=[];
+  pv.lineas.forEach(function(l){
+    if(!pv.dirty[l.rowIndex]) return;
+    items.push({ rowIndex:l.rowIndex, idControl:l.idControl, marca:l.marca, credito:l.credito, regSan:l.regSan, procedencia:l.procedencia,
+                 referencia:l.referencia, costo:l.costo, iva:l.iva, observaciones:l.observaciones });
+  });
+  if(!items.length){ alertWarn('No hay cambios por guardar.'); return; }
+  var CH=8, grupos=[]; for(var g=0; g<items.length; g+=CH) grupos.push(items.slice(g,g+CH));
+  loader(true,'Guardando...');
+  grupos.reduce(function(chain,grupo,gi){
+    return chain.then(function(){
+      loader(true,'Guardando ('+(gi+1)+' de '+grupos.length+')...');
+      return pvPost('portalguardar',{items:grupo}).catch(function(){ return gasGet('portalguardar',{items:grupo}); })
+        .then(function(res){ if(!res||!res.ok) throw new Error((res&&res.error)||'Error al guardar'); });
+    });
+  }, Promise.resolve())
+  .then(function(){
+    loader(false);
+    Swal.fire({ icon:'success', title:'Cambios guardados', text:items.length+' partida(s) actualizada(s).', confirmButtonColor:var_accent() });
+    pv.dirty={}; pvCargarLineas();
+  })
+  .catch(function(err){ loader(false); alertErr(err.message); });
+}
+function pvSubir(i,campo,input) {
+  var f=input.files&&input.files[0]; if(!f) return;
+  var cfg=PV_FILES[campo], ext=(f.name.split('.').pop()||'').toLowerCase();
+  if(cfg.ext.indexOf(ext)<0){ alertWarn('Tipo de archivo no permitido. Usa: '+cfg.ext.join(', ')+'.'); input.value=''; return; }
+  if(f.size>8*1024*1024){ alertWarn('El archivo supera 8 MB.'); input.value=''; return; }
+  var l=pv.lineas[i], link=document.getElementById('pvfl_'+campo+'_'+i);
+  if(link) link.innerHTML='<span style="color:var(--muted)">Subiendo...</span>';
+  var rd=new FileReader();
+  rd.onload=function(){
+    var b64=String(rd.result).split(',')[1]||'';
+    pvPost('portalsubir',{rowIndex:l.rowIndex,idControl:l.idControl,campo:campo,nombre:f.name,mime:f.type||'application/octet-stream',data:b64})
+      .then(function(res){
+        input.value='';
+        if(!res.ok){ if(link) link.innerHTML='<span style="color:var(--danger)">Error</span>'; alertErr(res.error||'No se pudo subir el archivo.'); return; }
+        l[cfg.key]=res.url;
+        if(link) link.innerHTML='<a href="'+esc(safeUrl(res.url))+'" target="_blank" rel="noopener">Ver archivo</a> <span style="color:#059669">✔ cargado</span>';
+      })
+      .catch(function(){ input.value=''; if(link) link.innerHTML='<span style="color:var(--danger)">Sin confirmar</span>'; alertErr('No se pudo confirmar la carga. Vuelve a seleccionar la cotización para verificar si el archivo quedó guardado.'); });
+  };
+  rd.onerror=function(){ alertErr('No se pudo leer el archivo.'); };
+  rd.readAsDataURL(f);
+}
+function pvExcel() {
+  var hacer=function(lineas){
+    if(!lineas.length){ alertWarn('No hay información para descargar.'); return; }
+    var rows=lineas.map(function(l){ return {
+      'ID CONTROL COTIZACIONES':l.idControl,'FECHA':l.fecha,'PROVEEDOR':l.proveedor,'FOLIO PROCEDIMIENTO':l.folio,'FECHA PROCEDIMIENTO':l.fechaProc,
+      'CLAVE O CODIGO':l.clave10,'DIF & VAR':l.difVar,'CLAVE COMPLETA':l.clave14,'DESCRIPCION':l.descripcion,'UNIDAD DE MEDIDA':l.um,'CANTIDAD':l.cantidad,
+      'MARCA':l.marca,'NUMERO PARTIDA':l.noPartida,'MUESTRA':l.muestra,'CREDITO O CONTADO':l.credito,'No. REG. SANITARIO':l.regSan,
+      'PROCEDENCIA ORIGEN':l.procedencia,'No. REFERENCIA O CATALOGO':l.referencia,'COSTO':l.costo===''?'':Number(l.costo),'I.V.A. COSTO':l.iva===''?'':Number(l.iva),
+      'TOTAL COSTO':(l.costo===''&&l.iva==='')?'':(Number(l.costo)||0)+(Number(l.iva)||0),'COMENTARIOS VENTAS':l.comentariosVentas,
+      'OBSERVACIONES COMPRAS':l.observaciones,'FOTO PRODUCTO':l.foto,'CARGAR REGISTRO SANITARIO':l.regSanFile,'CARGAR CATALOGO':l.catalogoFile,'CARGAR CERTIFICADOS':l.certificados }; });
+    var nombre='Portal_'+String(esProveedor()?SESSION.proveedor:(pv.prov||'Todos')).replace(/[^a-zA-Z0-9]+/g,'_')+'_'+toInputDate(new Date());
+    if(window.XLSX){
+      var ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Cotizaciones'); XLSX.writeFile(wb,nombre+'.xlsx');
+    } else {
+      var cols=Object.keys(rows[0]);
+      var csv=[cols.join(',')].concat(rows.map(function(r){ return cols.map(function(c){ return '"'+String(r[c]===undefined?'':r[c]).replace(/"/g,'""')+'"'; }).join(','); })).join('\n');
+      var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})); a.download=nombre+'.csv'; a.click();
+    }
+  };
+  if(pv.sel!=='' && pv.lineas.length) { hacer(pv.lineas); return; }
+  loader(true,'Preparando Excel...');
+  gasGet('portallineas',{idControl:'',proveedor:pv.prov,desde:pv.desde,hasta:pv.hasta}).then(function(res){
+    loader(false);
+    if(!res.ok){ alertErr(res.error); return; }
+    hacer(res.lineas);
+  }).catch(function(err){ loader(false); alertErr(err.message); });
 }
 function generarSolicitud() {
   var ids=Object.keys(agr.sel).filter(function(k){ return agr.sel[k]; });
