@@ -447,7 +447,7 @@ tr.lot-extra td{background:#f8fafc}
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbxoVGgF_aC5ltdXVnaxIURIzuQG-ThCOx4TWT-A0qCOaX0TJb7_DexM3XP3GXw4sQtjqw/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbyycJdBwhMZYrdiKKJqDDBrxAK59R7M7LwsKbXnQ90HCnJkAUOVaFB_SLciEys5eLAMGA/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -675,7 +675,7 @@ function initPortalProveedor() {
   document.getElementById('user-avatar').textContent = ini;
   document.getElementById('user-name').textContent   = nombre;
   document.getElementById('user-role').textContent   = 'PROVEEDOR';
-  ['nav-cotizaciones','nav-buscar','nav-agrupar','nav-lotes'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
+  ['nav-cotizaciones','nav-buscar','nav-agrupar'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
   startClock();
   navigate('portal', document.getElementById('nav-portal'));
 }
@@ -1640,8 +1640,7 @@ var PV_FILES={ foto:{key:'foto',accept:'image/*',ext:['jpg','jpeg','png','gif','
 var PV_COLS=[
   {k:'clave10',t:'CLAVE O CÓDIGO',w:120,fz:1},
   {k:'difVar',t:'DIF & VAR',w:80,fz:1},
-  {k:'clave14',t:'CLAVE COMPLETA',w:140,fz:1,fl:1},
-  {k:'descripcion',t:'DESCRIPCIÓN',w:320},
+  {k:'descripcion',t:'DESCRIPCIÓN',w:280,fz:1,fl:1},
   {k:'um',t:'UNIDAD DE MEDIDA',w:90},
   {k:'cantidad',t:'CANTIDAD',w:90},
   {k:'marca',t:'MARCA',w:150,ed:'text'},
@@ -1651,9 +1650,9 @@ var PV_COLS=[
   {k:'regSan',t:'No. REG. SANITARIO',w:170,ed:'text'},
   {k:'procedencia',t:'PROCEDENCIA / ORIGEN',w:170,ed:'text'},
   {k:'referencia',t:'No. REFERENCIA O CATÁLOGO',w:190,ed:'text'},
-  {k:'costo',t:'COSTO',w:120,ed:'num'},
-  {k:'iva',t:'I.V.A. COSTO',w:120,ed:'num'},
-  {k:'total',t:'TOTAL COSTO',w:120},
+  {k:'costo',t:'PRECIO UNIT.',w:120,ed:'num'},
+  {k:'iva',t:'I.V.A. PRECIO UNIT.',w:130,ed:'num'},
+  {k:'total',t:'TOTAL PRECIO',w:130},
   {k:'comentariosVentas',t:'COMENTARIOS VENTAS',w:230},
   {k:'observaciones',t:'OBSERVACIONES COMPRAS',w:280,ed:'area'},
   {k:'foto',t:'FOTO PRODUCTO',w:150,ed:'file',campo:'foto'},
@@ -1663,21 +1662,25 @@ var PV_COLS=[
 ];
 (function(){ var x=0; PV_COLS.forEach(function(c){ c.left=x; if(c.fz) x+=c.w; }); })();
 function pvTodos(){ return !!(SESSION && (SESSION.todos || (SESSION.tipoVista==='SUPER ADMIN' && !SESSION.proveedor))); }
-function pvPost(accion,payload){
+/* La respuesta de un POST a Apps Script no se puede leer desde GitHub Pages (CORS), por eso se envía en modo
+   no-cors y después se verifica por GET que el enlace del archivo ya quedó en la hoja. */
+function pvPostSinRespuesta(accion,payload){
   var body=Object.assign({accion:accion,token:(SESSION&&SESSION.token)||''},payload);
-  return fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)})
-    .then(function(r){ return r.json(); })
-    .then(function(res){ if(res&&res.noAuth){ sesionExpirada(); return new Promise(function(){}); } return res; });
+  return fetch(GAS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(body)});
 }
 function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
 function pvDirtyCount(){ return Object.keys(pv.dirty).length; }
 window.addEventListener('beforeunload',function(e){ if(pvDirtyCount()){ e.preventDefault(); e.returnValue=''; } });
 function pvMoney(n){ return '$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function pvTotalTxt(l){
-  var c=(l.costo===''||l.costo===null)?null:Number(l.costo), v=(l.iva===''||l.iva===null)?null:Number(l.iva);
-  if(c===null&&v===null) return '—';
-  return pvMoney((c||0)+(v||0));
+function pvNum(v){ return (v===''||v===null||v===undefined)?null:Number(v); }
+function pvIvaAuto(precio){ return Math.round(precio*0.16*100)/100; }
+/* TOTAL PRECIO = (PRECIO UNIT. + I.V.A. PRECIO UNIT.) x CANTIDAD */
+function pvTotalNum(l){
+  var c=pvNum(l.costo), v=pvNum(l.iva);
+  if(c===null&&v===null) return null;
+  return Math.round(((c||0)+(v||0))*(Number(l.cantidad)||0)*100)/100;
 }
+function pvTotalTxt(l){ var t=pvTotalNum(l); return t===null?'—':pvMoney(t); }
 // ---------- Vista 1: lista de cotizaciones ----------
 function renderPortal() {
   if(pv.vista==='detalle' && pv.lineas.length){ pvRenderDetalle(); return; }
@@ -1728,7 +1731,9 @@ function pvCargarLineas() {
     var pn=document.getElementById('pv-panel');
     if(!res.ok){ if(pn) pn.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; else alertErr(res.error); return; }
     if(!res.lineas.length){ if(pn) pn.innerHTML='<div class="no-data"><span class="material-icons">inbox</span>Esta cotización no tiene claves.</div>'; return; }
-    pv.lineas=res.lineas; pv.dirty={}; pv.vista='detalle'; pvRenderDetalle();
+    pv.lineas=res.lineas; pv.dirty={}; pv.vista='detalle';
+    pv.lineas.forEach(function(l){ var c=pvNum(l.costo), v=pvNum(l.iva); l.ivaManual=(c!==null && v!==null && Math.abs(v-pvIvaAuto(c))>0.004); });
+    pvRenderDetalle();
   }).catch(function(err){ loader(false); var pn=document.getElementById('pv-panel'); if(pn) pn.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; else alertErr(err.message); });
 }
 // ---------- Vista 2: tabla de captura con columnas inmovilizadas ----------
@@ -1770,7 +1775,7 @@ function pvRenderDetalle() {
         '<span class="agr-count" id="pv-contador" style="margin-left:0"></span>'+
       '</div>'+
       '<div class="pv-wrap"><table class="pv-table" style="width:'+tw+'px"><colgroup>'+cg+'</colgroup><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>'+
-      '<div class="agr-hint">Al desplazarte a la derecha, la clave, DIF &amp; VAR y la clave completa permanecen fijas. Los encabezados en morado son los campos que puedes capturar.</div>'+
+      '<div class="agr-hint">Al desplazarte a la derecha, la clave, DIF &amp; VAR y la descripción permanecen fijas. Los encabezados en morado son los campos que puedes capturar. El I.V.A. se calcula al 16 % del precio unitario y puedes modificarlo; el total es (precio unit. + I.V.A.) × cantidad.</div>'+
     '</div>';
   pvContar();
 }
@@ -1785,6 +1790,14 @@ function pvContar(){ var c=document.getElementById('pv-contador'); if(c){ var n=
 function pvInput(i,campo,v) {
   var l=pv.lineas[i]; l[campo]=v; pv.dirty[l.rowIndex]=true;
   var tr=document.getElementById('pvr'+i); if(tr) tr.classList.add('pv-dirty');
+  if(campo==='costo' && !l.ivaManual){            /* I.V.A. automático mientras no se haya modificado a mano */
+    var c=pvNum(v); l.iva=(c===null)?'':String(pvIvaAuto(c));
+    var ii=document.getElementById('pv_iva_'+i); if(ii) ii.value=l.iva;
+  }
+  if(campo==='iva'){                               /* si el valor difiere del 16 %, queda como captura manual */
+    var c2=pvNum(l.costo), v2=pvNum(v);
+    l.ivaManual=(v2!==null && c2!==null && Math.abs(v2-pvIvaAuto(c2))>0.004);
+  }
   if(campo==='costo'||campo==='iva'){ var t=document.getElementById('pv_total_'+i); if(t) t.textContent=pvTotalTxt(l); }
   pvContar();
 }
@@ -1796,13 +1809,19 @@ function pvGuardar() {
                  referencia:l.referencia, costo:l.costo, iva:l.iva, observaciones:l.observaciones });
   });
   if(!items.length){ alertWarn('No hay cambios por guardar.'); return; }
-  var CH=8, grupos=[]; for(var g=0; g<items.length; g+=CH) grupos.push(items.slice(g,g+CH));
+  /* Se envía por GET en grupos que no excedan el largo permitido de una URL */
+  var grupos=[], cur=[], len=0;
+  items.forEach(function(it){
+    var n=encodeURIComponent(JSON.stringify(it)).length;
+    if(cur.length && len+n>5500){ grupos.push(cur); cur=[]; len=0; }
+    cur.push(it); len+=n;
+  });
+  if(cur.length) grupos.push(cur);
   loader(true,'Guardando...');
   grupos.reduce(function(chain,grupo,gi){
     return chain.then(function(){
       loader(true,'Guardando ('+(gi+1)+' de '+grupos.length+')...');
-      return pvPost('portalguardar',{items:grupo}).catch(function(){ return gasGet('portalguardar',{items:grupo}); })
-        .then(function(res){ if(!res||!res.ok) throw new Error((res&&res.error)||'Error al guardar'); });
+      return gasGet('portalguardar',{items:grupo}).then(function(res){ if(!res||!res.ok) throw new Error((res&&res.error)||'Error al guardar'); });
     });
   }, Promise.resolve())
   .then(function(){
@@ -1812,24 +1831,43 @@ function pvGuardar() {
   })
   .catch(function(err){ loader(false); alertErr(err.message); });
 }
+/* Espera (hasta ~60 s) a que el enlace del archivo aparezca en la hoja */
+function pvEsperarArchivo(l,key,base,n){
+  n=n||0;
+  return new Promise(function(resolve){
+    setTimeout(function(){
+      var seguir=function(){ if(n>=24) resolve(''); else pvEsperarArchivo(l,key,base,n+1).then(resolve); };
+      gasGet('portallineas',{idControl:l.idControl,proveedor:l.proveedor}).then(function(res){
+        var f=(res&&res.ok)?res.lineas.filter(function(x){ return x.rowIndex===l.rowIndex; })[0]:null;
+        var url=f?safeUrl(f[key]):'';
+        if(url && url!==base) resolve(url); else seguir();
+      }).catch(seguir);
+    }, 2500);
+  });
+}
 function pvSubir(i,campo,input) {
   var f=input.files&&input.files[0]; if(!f) return;
   var cfg=PV_FILES[campo], ext=(f.name.split('.').pop()||'').toLowerCase();
   if(cfg.ext.indexOf(ext)<0){ alertWarn('Tipo de archivo no permitido. Usa: '+cfg.ext.join(', ')+'.'); input.value=''; return; }
   if(f.size>8*1024*1024){ alertWarn('El archivo supera 8 MB.'); input.value=''; return; }
-  var l=pv.lineas[i], link=document.getElementById('pvfl_'+campo+'_'+i);
+  var l=pv.lineas[i], link=document.getElementById('pvfl_'+campo+'_'+i), base=safeUrl(l[cfg.key]);
   if(link) link.innerHTML='<span style="color:var(--muted)">Subiendo...</span>';
   var rd=new FileReader();
   rd.onload=function(){
     var b64=String(rd.result).split(',')[1]||'';
-    pvPost('portalsubir',{rowIndex:l.rowIndex,idControl:l.idControl,campo:campo,nombre:f.name,mime:f.type||'application/octet-stream',data:b64})
-      .then(function(res){
+    pvPostSinRespuesta('portalsubir',{rowIndex:l.rowIndex,idControl:l.idControl,campo:campo,nombre:f.name,mime:f.type||'application/octet-stream',data:b64})
+      .then(function(){ return pvEsperarArchivo(l,cfg.key,base); })
+      .then(function(url){
         input.value='';
-        if(!res.ok){ if(link) link.innerHTML='<span style="color:var(--danger)">Error</span>'; alertErr(res.error||'No se pudo subir el archivo.'); return; }
-        l[cfg.key]=res.url;
-        if(link) link.innerHTML='<a href="'+esc(safeUrl(res.url))+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Ver archivo</a> <span style="color:#059669">✔</span>';
+        if(!url){
+          if(link) link.innerHTML='<span style="color:var(--danger)">Sin confirmar</span>';
+          alertErr('No se pudo confirmar la carga en 60 segundos. Vuelve a abrir la cotización en un momento para verificar si el archivo quedó guardado.');
+          return;
+        }
+        l[cfg.key]=url;
+        if(link) link.innerHTML='<a href="'+esc(url)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Ver archivo</a> <span style="color:#059669">✔</span>';
       })
-      .catch(function(){ input.value=''; if(link) link.innerHTML='<span style="color:var(--danger)">Sin confirmar</span>'; alertErr('No se pudo confirmar la carga. Vuelve a abrir la cotización para verificar si el archivo quedó guardado.'); });
+      .catch(function(err){ input.value=''; if(link) link.innerHTML='<span style="color:var(--danger)">Error</span>'; alertErr('No se pudo enviar el archivo: '+err.message); });
   };
   rd.onerror=function(){ alertErr('No se pudo leer el archivo.'); };
   rd.readAsDataURL(f);
@@ -1841,8 +1879,8 @@ function pvExcel() {
       'ID CONTROL COTIZACIONES':l.idControl,'FECHA':l.fecha,'PROVEEDOR':l.proveedor,'FOLIO PROCEDIMIENTO':l.folio,'FECHA PROCEDIMIENTO':l.fechaProc,
       'CLAVE O CODIGO':l.clave10,'DIF & VAR':l.difVar,'CLAVE COMPLETA':l.clave14,'DESCRIPCION':l.descripcion,'UNIDAD DE MEDIDA':l.um,'CANTIDAD':l.cantidad,
       'MARCA':l.marca,'NUMERO PARTIDA':l.noPartida,'MUESTRA':l.muestra,'CREDITO O CONTADO':l.credito,'No. REG. SANITARIO':l.regSan,
-      'PROCEDENCIA ORIGEN':l.procedencia,'No. REFERENCIA O CATALOGO':l.referencia,'COSTO':l.costo===''?'':Number(l.costo),'I.V.A. COSTO':l.iva===''?'':Number(l.iva),
-      'TOTAL COSTO':(l.costo===''&&l.iva==='')?'':(Number(l.costo)||0)+(Number(l.iva)||0),'COMENTARIOS VENTAS':l.comentariosVentas,
+      'PROCEDENCIA ORIGEN':l.procedencia,'No. REFERENCIA O CATALOGO':l.referencia,'PRECIO UNIT.':l.costo===''?'':Number(l.costo),'I.V.A. PRECIO UNIT.':l.iva===''?'':Number(l.iva),
+      'TOTAL PRECIO':(function(){ var t=pvTotalNum(l); return t===null?'':t; })(),'COMENTARIOS VENTAS':l.comentariosVentas,
       'OBSERVACIONES COMPRAS':l.observaciones,'FOTO PRODUCTO':l.foto,'CARGAR REGISTRO SANITARIO':l.regSanFile,'CARGAR CATALOGO':l.catalogoFile,'CARGAR CERTIFICADOS':l.certificados }; });
     var nombre='Portal_'+String(pvTodos()?'Todos':(SESSION.proveedor||'')).replace(/[^a-zA-Z0-9]+/g,'_')+'_'+toInputDate(new Date());
     if(window.XLSX){
