@@ -173,6 +173,8 @@ tr:hover td{background:#f8fafc}
 .lg-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
 .lg-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex;align-items:center}
 .lg-eye:hover{color:var(--accent)}
+.lg-rec{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin:-4px 0 14px;cursor:pointer}
+.lg-rec input{width:16px;height:16px;accent-color:var(--accent)}
 .lg-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#6366f1);color:#fff;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:6px;box-shadow:0 4px 14px rgba(79,70,229,.35);transition:filter .2s}
 .lg-btn:hover{filter:brightness(1.1)}
 .lg-btn:disabled{opacity:.55;cursor:not-allowed}
@@ -252,6 +254,7 @@ tr.lot-extra td{background:#f8fafc}
         </svg>
       </button>
     </div>
+    <label class="lg-rec"><input type="checkbox" id="lg-recordar" checked> Mantener sesión iniciada en este equipo (30 días)</label>
     <button class="lg-btn" id="lg-btn" onclick="doLogin()">
       <span class="lg-btn-inner" id="lg-btn-inner">INICIAR SESIÓN</span>
     </button>
@@ -447,7 +450,7 @@ tr.lot-extra td{background:#f8fafc}
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▼▼▼  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▼▼▼
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbyycJdBwhMZYrdiKKJqDDBrxAK59R7M7LwsKbXnQ90HCnJkAUOVaFB_SLciEys5eLAMGA/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzv4VsDK0Fp2g05ZTlD9ci5QYqi07Cmc1dO7o6zaCu9iXkSeiK7i15mgqia-GkhF1a59g/exec';
 //  ▲▲▲  ACTUALIZAR CON CADA NUEVO DEPLOY DE GAS  ▲▲▲
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
@@ -512,6 +515,7 @@ function gasGet(action, extraParams) {
   if (SESSION && SESSION.token) ep.token = SESSION.token;
   return _gasGetRaw(action, ep).then(function(res) {
     if (res && res.noAuth) { sesionExpirada(); return new Promise(function(){}); }
+    if (res && res.nuevoToken && SESSION) { SESSION.token = res.nuevoToken; guardarSesion(); }   /* renovación de la sesión */
     return res;
   });
 }
@@ -547,7 +551,16 @@ function gasPost(payload) {
 //  ESTADO GLOBAL
 // ══════════════════════════════════════════════════════════════
 var SESSION = null;
-try { var _sRaw = sessionStorage.getItem('mc_cot_sesion'); if (_sRaw) SESSION = JSON.parse(_sRaw); } catch(e) {}
+/* Con "Mantener sesión" la sesión vive en localStorage (30 días); si no, en sessionStorage (se pierde al cerrar la pestaña) */
+try { var _sRaw = localStorage.getItem('mc_cot_sesion') || sessionStorage.getItem('mc_cot_sesion'); if (_sRaw) SESSION = JSON.parse(_sRaw); } catch(e) {}
+function guardarSesion(){
+  try {
+    var raw=JSON.stringify(SESSION);
+    if(SESSION.recordar){ localStorage.setItem('mc_cot_sesion',raw); sessionStorage.removeItem('mc_cot_sesion'); }
+    else { sessionStorage.setItem('mc_cot_sesion',raw); localStorage.removeItem('mc_cot_sesion'); }
+  } catch(e) {}
+}
+function borrarSesion(){ try { localStorage.removeItem('mc_cot_sesion'); } catch(e) {} try { sessionStorage.removeItem('mc_cot_sesion'); } catch(e) {} }
 var db          = { usuarios:[], empresas:[], claves:[], hospitales:[] };
 var cotizaciones= [];
 var seccion     = 'cotizaciones';
@@ -590,13 +603,13 @@ function doLogin() {
   if (!correo || !pass) { msgEl.className = 'lg-msg error'; msgEl.textContent = 'Ingresa correo y contraseña.'; return; }
   btnEl.disabled = true;
   inner.innerHTML = '<div class="lg-spin"></div> Verificando…';
-  gasGet('login', { correo: correo, password: pass })
+  gasGet('login', { correo: correo, password: pass, recordar: !!document.getElementById('lg-recordar').checked })
     .then(function(res) {
       btnEl.disabled = false; inner.textContent = 'INICIAR SESIÓN';
       if (res && res.ok) {
         SESSION = { token:res.token, nombre:res.nombre, cuenta:res.correo, iniciales:res.iniciales,
-                    tipoVista:res.tipoVista, rol:res.tipoVista, proveedor:res.proveedor||'', todos:!!res.todos };
-        try { sessionStorage.setItem('mc_cot_sesion', JSON.stringify(SESSION)); } catch(e) {}
+                    tipoVista:res.tipoVista, rol:res.tipoVista, proveedor:res.proveedor||'', todos:!!res.todos, recordar:!!res.recordar };
+        guardarSesion();
         document.getElementById('lg-pass').value = '';
         _sesionAvisada = false;
         mostrarApp();
@@ -618,7 +631,7 @@ function sesionExpirada() {
   if (_sesionAvisada) return;
   _sesionAvisada = true;
   SESSION = null;
-  try { sessionStorage.removeItem('mc_cot_sesion'); } catch(e) {}
+  borrarSesion();
   loader(false);
   Swal.fire({ icon:'info', title:'Sesión expirada', text:'Inicia sesión de nuevo para continuar.',
               confirmButtonColor:var_accent(), allowOutsideClick:false })
@@ -662,7 +675,7 @@ function doLogout() {
     .then(function(r) {
       if (!r.isConfirmed) return;
       SESSION = null;
-      try { sessionStorage.removeItem('mc_cot_sesion'); } catch(e) {}
+      borrarSesion();
       location.reload();
     });
 }
@@ -1173,7 +1186,7 @@ function procesarMasiva() {
   if(nuevas.length===0){alertWarn('No se encontraron datos válidos.');return;}
   closeModal('modal-masiva');
   /* Resolver claves en grupos de 10 para no exceder URL de GAS */
-  var RBATCH = 10;
+  var RBATCH = 40;
   var grupos = [];
   for(var g=0; g<nuevas.length; g+=RBATCH) grupos.push(nuevas.slice(g,g+RBATCH));
   var todosResultados = [];
@@ -1181,8 +1194,8 @@ function procesarMasiva() {
   grupos.reduce(function(chain, grupo, gi) {
     return chain.then(function() {
       loader(true,'Resolviendo claves ('+(gi+1)+' de '+grupos.length+')...');
-      var items = grupo.map(function(p){ return {clave10:p.clave10, difVariante:p.difVariante}; });
-      return gasGet('resolverbatch', {items:JSON.stringify(items)})
+      var items = grupo.map(function(p){ return [p.clave10, p.difVariante]; });
+      return gasGet('resolverbatch', {items:items})
         .then(function(res) {
           if(res && res.ok && res.resultados) {
             todosResultados = todosResultados.concat(res.resultados);
@@ -1541,7 +1554,7 @@ function cargarLineasLotes(id) {
     if(lot.id!==id) return;
     if(!res.ok){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(res.error||'Error')+'</div>'; return; }
     lot.lineas=res.lineas; lot.info=res.info;
-    lot.ent=res.lineas.map(function(){ return [{cant:'',lote:'',notas:'',sel:false}]; });
+    lot.ent=res.lineas.map(function(l){ return [{cant:'',lote:'',notas:'',sel:false,marca:l.marca||''}]; });
     renderLotesTabla();
   }).catch(function(err){ panel.innerHTML='<div class="no-data"><span class="material-icons">error_outline</span>'+esc(err.message)+'</div>'; });
 }
@@ -1561,6 +1574,7 @@ function renderLotesTabla() {
         '<td>'+(first?esc(l.um):'')+'</td>'+
         '<td>'+(first?esc(l.cantidad):'')+'</td>'+
         '<td style="white-space:normal;min-width:90px">'+(first?('<b>'+esc(l.cargado)+'</b>'+(l.lotes?'<div style="font-size:.68rem;color:var(--muted)">'+esc(l.lotes)+'</div>':'')):'')+'</td>'+
+        '<td><input type="text" maxlength="100" id="lm_'+k+'" value="'+esc(e.marca)+'" style="width:130px" placeholder="Marca" oninput="lotInput('+li+','+ei+',\'marca\',this.value)"></td>'+
         '<td><input type="number" min="0" step="any" id="lc_'+k+'" value="'+esc(e.cant)+'" style="width:90px;text-align:right" oninput="lotInput('+li+','+ei+',\'cant\',this.value)"></td>'+
         '<td><input type="text" id="ll_'+k+'" value="'+esc(e.lote)+'" style="width:130px" placeholder="Lote" oninput="lotInput('+li+','+ei+',\'lote\',this.value)"></td>'+
         '<td><input type="text" id="ln_'+k+'" value="'+esc(e.notas)+'" style="width:150px" placeholder="Notas" oninput="lotInput('+li+','+ei+',\'notas\',this.value)"></td>'+
@@ -1573,7 +1587,7 @@ function renderLotesTabla() {
     '<div class="lot-info"><span>Proveedor: <b>'+esc(i.proveedor||'')+'</b></span><span>Cotización: <b>'+esc(i.idControl||'')+'</b></span><span>Folio procedimiento: <b>'+esc(i.folio||'--')+'</b></span><span>Fecha procedimiento: <b>'+esc(i.fechaProc||'--')+'</b></span></div>'+
     '<div class="agr-toolbar"><button class="btn btn-outline btn-sm" onclick="lotMarcar(true)">Marcar todas</button><button class="btn btn-outline btn-sm" onclick="lotMarcar(false)">Limpiar marcas</button><span class="agr-count" id="lot-contador"></span></div>'+
     '<div class="table-scroll-wrap" style="max-height:calc(100vh - 430px);min-height:220px"><table><thead><tr>'+
-      '<th style="width:36px"></th><th>PART.</th><th>CÓDIGO</th><th>DIF Y VAR</th><th>DESCRIPCIÓN</th><th>UM</th><th>CANT. SOLIC.</th><th>CARGADO</th><th>CANTIDAD</th><th>LOTE</th><th>NOTAS</th><th style="width:40px"></th>'+
+      '<th style="width:36px"></th><th>PART.</th><th>CÓDIGO</th><th>DIF Y VAR</th><th>DESCRIPCIÓN</th><th>UM</th><th>CANT. SOLIC.</th><th>CARGADO</th><th>MARCA</th><th>CANTIDAD</th><th>LOTE</th><th>NOTAS</th><th style="width:40px"></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<div class="agr-footer"><button class="btn btn-primary" onclick="guardarLotes()"><span class="material-icons" style="font-size:17px">save</span> Guardar lotes</button></div>';
   lotContar();
@@ -1588,7 +1602,7 @@ function lotInput(li,ei,campo,v){
   if((campo==='cant'||campo==='lote') && v && !e.sel){ e.sel=true; var c=document.getElementById('lchk_'+li+'_'+ei); if(c) c.checked=true; lotContar(); }
 }
 function lotMarcar(on){ lot.ent.forEach(function(a){ a[0].sel=on; }); renderLotesTabla(); }
-function lotAdd(li){ lot.ent[li].push({cant:'',lote:'',notas:'',sel:true}); renderLotesTabla(); }
+function lotAdd(li){ lot.ent[li].push({cant:'',lote:'',notas:'',sel:true,marca:lot.lineas[li].marca||''}); renderLotesTabla(); }
 function lotDel(li,ei){ lot.ent[li].splice(ei,1); renderLotesTabla(); }
 function guardarLotes() {
   var items=[], falta=null;
@@ -1597,7 +1611,7 @@ function guardarLotes() {
       if(!e.sel) return;
       var cant=parseFloat(e.cant), lote=String(e.lote||'').trim();
       if(!(cant>0)||!lote){ if(!falta) falta=l; return; }
-      items.push({ rowIndex:l.rowIndex, cantidad:cant, lote:lote, notas:String(e.notas||'').trim() });
+      items.push({ rowIndex:l.rowIndex, cantidad:cant, lote:lote, notas:String(e.notas||'').trim(), marca:String(e.marca||'').trim() });
     });
   });
   if(falta){ alertWarn('Captura cantidad (mayor a 0) y lote en todas las filas marcadas (partida '+(falta.noPartida||falta.clave10)+').'); return; }
@@ -1606,8 +1620,13 @@ function guardarLotes() {
               confirmButtonColor:var_accent(), cancelButtonText:'Cancelar', confirmButtonText:'Guardar' })
     .then(function(r){
       if(!r.isConfirmed) return;
-      var CH=15, idCP=lot.id, grupos=[];
-      for(var g=0; g<items.length; g+=CH) grupos.push(items.slice(g,g+CH));
+      var idCP=lot.id, grupos=[], cur=[], len=0;
+      items.forEach(function(it){           /* grupos que no excedan el largo permitido de una URL */
+        var n=encodeURIComponent(JSON.stringify(it)).length;
+        if(cur.length && len+n>5500){ grupos.push(cur); cur=[]; len=0; }
+        cur.push(it); len+=n;
+      });
+      if(cur.length) grupos.push(cur);
       loader(true,'Guardando lotes...');
       grupos.reduce(function(chain,grupo,gi){
         return chain.then(function(){
